@@ -26,7 +26,7 @@
 \\
 
 \section{Ishod projekta}
-Ishod projekta je LSTM rekurzivna mreža na razini koja generira realistična imena hrvatskih naselja.\\
+Ishod projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena hrvatskih naselja.\\
 \\
 Mreža radi sa vektorima koji predstavljaju slova hrvatske abecede proširene specijalnim znakovima $\Sigma = \{ \text{hrv. abeceda}\} \cup \{\langle start \rangle, "\setminus 0"\}$.\\
 Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert = 32$.
@@ -40,19 +40,25 @@ Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert 
 Izlaz dobiven na kraju pojedinog vremenskog koraka $t$ je vektor vjerojatnosti pojave pojednog znaka abecende.\\
 \begin{align}
     \hat{\mathbf{y}}^{(t)} &= \begin{bmatrix}
-           p(c_1) \\
-           p(c_2 | c_1) \\
+           p(c_0) \\
+           p(c_1 | c_0) \\
            \vdots \\
-           p(c_M | \bigcap_1^{M-1} c_2)
+           p(c_{\lvert \Sigma \rvert -1} | \bigcap_{i=0}^{\lvert \Sigma \rvert -2} c_i)
          \end{bmatrix}
          \quad \quad \text{Gdje} \quad c \in \Sigma
 \end{align}
 Vjerojatnosti su dobivene softmax funkcijom parametriziranom hiperparametrom temperature $\tau$.\\
-Na temelju tih vjerojatnosti se uzorkuje konačni izlazni vektor $\mathbf{y}$, odnosno ime naselja.\\
+Na temelju tih vjerojatnosti se uzorkuje konačni izlazni vektor $\mathbf{y}^{(t)}$, odnosno t-ti znak u imenu naselja.\\
+\begin{equation}
+ \mathbf{y}^{(t)} \sim \sigma_{\tau}(\hat{\mathbf{y}}^{(t)})
+\end{equation}
+
 Temperaturno uzorkovanje je izabrano, jer omogućava eksperimentiranje i generiranje zanimljivih toponima.\\
+\\
+Izlaz mreže je niz znakova $\{\mathbf{y}^{(t)}\} \biggr \rvert_{t=0}^{T-1}$, odnosno ime naselja.
 
 \section{Tema i kratki opis}
-Tema projekta je generiranje imena hrvatskih naselja.\\
+Tema projekta je generiranje realističnih imena hrvatskih naselja.\\
 U tu svrhu će se izraditi LSTM mreža parametrizirana sljedećim hiperparametrima:
 \begin{enumerate}
 \item Dimenzije skrivenog stanja: $\lvert \mathbf{a} \rvert$
@@ -81,15 +87,15 @@ Ostvarenje projekta podrazumijeva slijedeće zadatke:
 \multirow{2}{*}{treniranje} & implementacija algoritma učenja & N/A  \\ \cline{2-3} 
  & treniranje & N/A \\ \hline
 \multirow{3}{*}{validacija} & ručna validacija modela & N/A  \\ \cline{2-3} 
- & ugađanje hiperparametara & N/A  \\ \hline 
+ & podešavanje hiperparametara & N/A  \\ \hline 
  
 \caption{zadatci i raspored}
 
 \end{longtable}
 \ \\
 Mreža će biti implementiarana pomoću TensorFlow radnog okvira.\\
-Ugađanje hiperparametara se odvija paralelno sa implementacijom mreže u radnom okviru Keras.\\
-	
+Podešavanje hiperparametara se odvija paralelno sa implementacijom mreže u radnom okviru Keras.\\
+
 
 
 \end{document}
