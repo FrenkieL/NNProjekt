@@ -1,4 +1,5 @@
-/docu/.log
-/docu/.synctex.gz
-/docu/.aux
+/docu/*.log
+/docu/*.synctex.gz
+/docu/*.aux
 docu/*.log
+docu/prijedlog_sem.aux
