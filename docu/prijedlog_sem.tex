@@ -19,7 +19,7 @@
 
 \maketitle
 
-\chapter*{Prijedlog}
+\chapter*{prijedlog}
 \ \\
 \\
 \\
@@ -60,10 +60,9 @@ Temperaturno uzorkovanje je izabrano, jer omogućava eksperimentiranje i generir
 Izlaz mreže je niz znakova $\{\mathbf{y}^{(t)}\} \biggr \rvert_{t=0}^{T-1}$, odnosno ime naselja.
 
 \section{Tema i kratki opis}
-<<<<<<< HEAD
 \label{sec_tema}
-Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst. U planu je karakterizirati mrežu sa sljedećim hiperparametrima:
->>>>>>> 6bdd00852de1d0ed3f6035481b667dc70e8b184c
+Tema projekta je generiranje realističnih imena hrvatskih naselja.\\
+U tu svrhu će se izraditi LSTM mreža parametrizirana sljedećim hiperparametrima:
 \begin{enumerate}
 \item Dimenzije skrivenog stanja: $\lvert \mathbf{a} \rvert$
 \item Stopa učenja: $\mu$
@@ -77,47 +76,31 @@ Točan izgled ćelije i dizajn mreže će biti određeni naknadno.\\
 
 \section{Zadatci na projektu i raspodjela posla}
 Ostvarenje projekta podrazumijeva slijedeće zadatke:
-\begin{longtable}{|p{100pt}| p{110pt} |p{20pt}| p{80pt}|}
+\begin{longtable}{|p{130pt}| p{110pt} |p{200pt}|}
 \hline
- & \textbf{Zadatak} & \textbf{ETA} & \textbf{Developeri}\\
+ & \textbf{ime} & \textbf{studenti}\\
 \hline
-\multirow{8}{*}{Dokumentacija} & Uvod & 5h \\ \cline{3-3}
- & Opis problema & 3h \\ \cline{2-3}
- & Opis eksperimentalnih rezultata & 1d & Grupa \\ \cline{2-3}
- & Diskusija i usporedba rezultata & 1d \\ \cline{2-3}
- & Lektoriranje & 1d \\ \cline{2-3}
- & Zaključak & 4h \\ \hline
-\multirow{2}{*}{Administrativni poslovi} & Održavanje GitHub-a & & Lubina, Jurković\\ \cline{2-3} & Sastanci & & Grupa \\ \hline
-\multirow{1}{*}{Izrada prezentacije} &  & 3d & Jurković \\ \hline
-\multirow{3}{*}{Implementacija} & Obrada ulaznog skupa podataka & 1w & Granić,  Logarušić, Lubina \\ \cline{2-3}
-& Implementacija modela u TensorFlow-u & 1w & Jurković, Čogelja, Logarušić \\ \hline
-& Dizajn modela u kerasu & 1w & Lubina, Juvančić, Granić \\ \cline{2-3}
-\multirow{2}{*}{Treniranje}
- & Treniranje modela & 2d & Jurković, Čogelja, Logarušić\\ \hline
-\multirow{3}{*}{Validacija} & Ručna validacija modela & 1w & Jurković, Granić,  Logarušić\\ \cline{2-3} 
- & Podešavanje hiperparametara u kerasu & 1w & Lubina, Juvančić, Granić  \\ \hline 
+\multirow{8}{*}{pisani rad} & kratki uvod & N/A\\ \cline{2-3}
+ & opis problema & N/A \\ \cline{2-3}
+ & opis eksperimentalnih rezultata & N/A \\ \cline{2-3}
+ & diskusija i usporedba rezultata & N/A \\ \cline{2-3}
+ & lektoriranje & N/A \\ \cline{2-3}
+ & zaključak & N/A \\ \hline
+\multirow{1}{*}{administrativni poslovi} & & Lubina\\ \hline
+\multirow{1}{*}{izrada prezentacije} &  & N/A\\ \hline
+\multirow{5}{*}{implementacija} & priprema skupa podataka & N/A  \\ \cline{2-3} 
+ & implementacija mreže & N/A \\ \cline{2-3}
+ & implementacija uzorkovanja & N/A \\ \hline
+\multirow{2}{*}{treniranje} & implementacija algoritma učenja & N/A  \\ \cline{2-3} 
+ & treniranje & N/A \\ \hline
+\multirow{3}{*}{validacija} & ručna validacija modela & N/A  \\ \cline{2-3} 
+ & podešavanje hiperparametara & N/A  \\ \hline 
  
-\caption{Zadaci i estimacije}
+\caption{zadatci i raspored}
 
 \end{longtable}
 
-\section{Vremenski plan rada}
 
-U priloženoj tablici prikazan je okviran plan rada koji obuhvaća ključne datume i zadatke koji su planirani u sklopu projekta. Rokovi su estimirani uzimajući u obzir praznike i ispitne rokove (MI i ZI) kako bi se mogao predvidjeti realan tok aktivnosti. Rokovi su isto tako fleksibilni zbog akademskih obaveza članova grupe što osigurava aktivno sudjelovanje svih članova. Mogući iterativni postupci promjene dizajna mreže i/ili ćelije te ispravljanje grešaka nisu bili mogući za opisati, ali su uzeti u obzir kao i, ispravljanje raznih grešaka.
-
-\begin{longtable}{|p{35pt}|p{90pt}|p{90pt}|p{90pt}|p{90pt}|}
-\hline
-\textbf{Rok} & \textbf{30.10.} & \textbf{15.12.} & \textbf{6.1.} & \textbf{15.1.} \\
-\hline
-\multirow{5}{*}{\textbf{Zadaci}} 
-                   & 1. Početak rada & 1. Obrada ulaznog skupa podataka & 1. Validacija modela & 1. Pisanje dokumentacije \\
-                   & & 2. Dizajn modela u kerasu & 2. Podešavanje hiperparametara u kerasu & 2. Priprema prezentacije \\
-                   & & 3. Implementacija modela u TensorFlow-u & & \\
-                   & & 4. Treniranje modela & & \\
-\hline
-
-\caption{Planirani tok rada na projektu}
-\end{longtable}
 
 \end{document}
 
