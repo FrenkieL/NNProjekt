@@ -29,7 +29,7 @@
 Ishod projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena hrvatskih naselja.\\
 \\
 Mreža radi sa vektorima koji predstavljaju slova hrvatske abecede proširene specijalnim znakovima $\Sigma = \{ \text{hrv. abeceda}\} \cup \{\langle start \rangle, "\setminus 0"\}$.\\
-Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert = 32$.
+Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert = 32 + 2$.
 \begin{equation}
 \mathbf{x}^{(t)}_i=
     \begin{cases}
@@ -50,28 +50,35 @@ Izlaz dobiven na kraju pojedinog vremenskog koraka $t$ je vektor vjerojatnosti p
 Vjerojatnosti su dobivene softmax funkcijom parametriziranom hiperparametrom temperature $\tau$.\\
 Na temelju tih vjerojatnosti se uzorkuje konačni izlazni vektor $\mathbf{y}^{(t)}$, odnosno t-ti znak u imenu naselja.\\
 \begin{equation}
- \mathbf{y}^{(t)} \sim \sigma_{\tau}(\hat{\mathbf{y}}^{(t)})
+ \mathbf{y}^{(t)} \sim \hat{\mathbf{y}}^{(t)} = \sigma_{\tau}(f(\mathbf{x}^{(t)} ; \boldsymbol{\theta}))
 \end{equation}
-
+\ \\
+$f(\mathbf{x} ; \boldsymbol{\theta})$ predstavlja ukupno djelovanje ćelija modela nad njenim ulazom parametrizirano hiperparametrima modela $\boldsymbol{\theta} = \begin{bmatrix} \lvert \mathbf{a} \rvert & \mu & \tau \end{bmatrix}$\\ (opisani u poglavlju \ref{sec_tema})
+\ \\
 Temperaturno uzorkovanje je izabrano, jer omogućava eksperimentiranje i generiranje zanimljivih toponima.\\
 \\
 Izlaz mreže je niz znakova $\{\mathbf{y}^{(t)}\} \biggr \rvert_{t=0}^{T-1}$, odnosno ime naselja.
 
 \section{Tema i kratki opis}
+\label{sec_tema}
 Tema projekta je generiranje realističnih imena hrvatskih naselja.\\
 U tu svrhu će se izraditi LSTM mreža parametrizirana sljedećim hiperparametrima:
 \begin{enumerate}
 \item Dimenzije skrivenog stanja: $\lvert \mathbf{a} \rvert$
 \item Stopa učenja: $\mu$
 \item Temperatura: $\tau$
-\item Broj LSTM jedinica
+\item Broj LSTM ćelija
 \end{enumerate}
+\ \\
+LSTM ćelija i mreža će biti implementirane u radnom okviru pyTorch.\\
+Dizajn mreže i podešavanje hiperparametara se odvija paralelno sa implementacijom mreže u radnom okviru Keras.\\
+Točan izgled ćelije i dizajn mreže će biti određeni naknadno.\\
 
 \section{Zadatci na projektu i raspodjela posla}
 Ostvarenje projekta podrazumijeva slijedeće zadatke:
 \begin{longtable}{|p{130pt}| p{110pt} |p{200pt}|}
 \hline
- & \textbf{ime} & \textbf{opis}\\
+ & \textbf{ime} & \textbf{studenti}\\
 \hline
 \multirow{8}{*}{pisani rad} & kratki uvod & N/A\\ \cline{2-3}
  & opis problema & N/A \\ \cline{2-3}
@@ -92,9 +99,6 @@ Ostvarenje projekta podrazumijeva slijedeće zadatke:
 \caption{zadatci i raspored}
 
 \end{longtable}
-\ \\
-Mreža će biti implementiarana pomoću TensorFlow radnog okvira.\\
-Podešavanje hiperparametara se odvija paralelno sa implementacijom mreže u radnom okviru Keras.\\
 
 
 
