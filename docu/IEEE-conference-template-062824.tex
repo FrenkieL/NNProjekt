@@ -103,11 +103,7 @@ Kao funkcija gubitka koristi se unakrsna entropija.
 \begin{equation}
 L_i = - \sum_{t = 0}^{T-1} \mathbf{x}_i^{(t)} \cdot log(\hat{\mathbf{y}}_i^{(t)})
 \end{equation}
-BPTT je u biti propagirani stohastički gradijentni spust.
-Težine se mijenjaju prema pravilu:
-\begin{equation}
-\Delta w = - \eta \frac{\partial L}{\partial w}
-\end{equation}
+inačica BPTT koju mi koristimo je u biti propagirani stohastički gradijentni spust.
 
 \section{Opis eksperimentalnih rezultata}\label{FAT}
 \paragraph{optimiranje hiperparametara}
