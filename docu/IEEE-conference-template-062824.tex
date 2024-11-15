@@ -1,0 +1,146 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[croatian]{babel}
+
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Generiranje imena naselja pomocu LSTM mreže}
+
+
+\author{
+\IEEEauthorblockN{Antonio Čogelja}
+\and
+\IEEEauthorblockN{Morena Granić}
+\and
+\IEEEauthorblockN{Fran Lubina}
+\and
+\IEEEauthorblockN{Iva Jurković}
+\and
+\IEEEauthorblockN{Jakov Juvančić}
+\and
+\IEEEauthorblockN{Matej Logarušić}
+}
+
+\maketitle
+
+\begin{abstract}
+Cilj projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena hrvatskih naselja. Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
+Željena točnost modela $\eta$ je $\lim_{\tau \to 0} \eta = 0.5$
+\end{abstract}
+
+\begin{IEEEkeywords}
+Naselje, LSTM, rekurzivne mreže, neuronske mreže-
+\end{IEEEkeywords}
+
+\section{Uvod}
+Ishod projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena hrvatskih naselja.\\
+Mreža radi sa vektorima koji predstavljaju slova hrvatske abecede proširene specijalnim znakovima $\Sigma = \{ \text{hrv. abeceda}\} \cup \{\langle start \rangle, "\setminus 0"\}$.\\
+Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert = 30 + 2$.
+\begin{equation}
+\mathbf{x}^{(t)}_i=
+    \begin{cases}
+      1, & \text{ako}\ i=j \\
+      0, & \text{inače}
+    \end{cases}
+\end{equation}
+Izlaz dobiven na kraju pojedinog vremenskog koraka $t$ je vektor vjerojatnosti pojave pojednog znaka abecende.\\
+\begin{align}
+    \hat{\mathbf{y}}^{(t)} &= \begin{bmatrix}
+           p(c_0) \\
+           p(c_1 | c_0) \\
+           \vdots \\
+           p(c_{\lvert \Sigma \rvert -1} | \bigcap_{i=0}^{\lvert \Sigma \rvert -2} c_i)
+         \end{bmatrix}
+         \quad \quad \text{Gdje} \quad c \in \Sigma
+\end{align}
+Vjerojatnosti su dobivene softmax funkcijom parametriziranom hiperparametrom temperature $\tau$.\\
+Na temelju tih vjerojatnosti se uzorkuje konačni izlazni vektor $\mathbf{y}^{(t)}$, odnosno t-ti znak u imenu naselja.\\
+\begin{equation}
+ \mathbf{y}^{(t)} \sim \hat{\mathbf{y}}^{(t)} = \sigma_{\tau}(f(\mathbf{x}^{(t)} ; \boldsymbol{\theta}))
+\end{equation}
+\ \\
+$f(\mathbf{x} ; \boldsymbol{\theta})$ predstavlja ukupno djelovanje ćelija modela nad njenim ulazom parametrizirano hiperparametrima modela $\boldsymbol{\theta} = \begin{bmatrix} \lvert \mathbf{a} \rvert & \mu & \tau \end{bmatrix}$\\ (opisani u poglavlju \ref{subsect_hiper})
+Temperaturno uzorkovanje je izabrano, jer omogućava eksperimentiranje i generiranje zanimljivih toponima.
+Izlaz mreže je niz znakova $\{\mathbf{y}^{(t)}\} \biggr \rvert_{t=0}^{T-1}$, odnosno ime naselja.
+Željena točnost modela $\eta$ je $\lim_{\tau \to 0} \eta = 0.5$
+
+\section{Pregled literature}
+--
+
+\section{Opis implementirane LSTM mreže}
+Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
+LSTM ćelija i mreža je implementirana u radnom okviru pyTorch.\\
+Dizajn mreže i podešavanje hiperparametara se odvija paralelno sa implementacijom mreže u radnom okviru Keras.
+
+\subsection{Arhitektura}
+--
+
+\subsection{Hiperparametri}
+\label{subsect_hiper}
+\begin{enumerate}
+\item Dimenzija skrivenog stanja: $\lvert \mathbf{a} \rvert$
+\item Stopa učenja: $\mu$
+\item Temperatura: $\tau$
+\item Broj LSTM ćelija
+\end{enumerate}
+
+\subsection{Ćelija}
+Ćelija izgledda ovako.
+
+\subsection{Treniranje}
+BPTT je korišten kao algoritam učenja.
+Kao funkcija gubitka koristi se unakrsna entropija.
+\begin{equation}
+L_i = - \sum_{t = 0}^{T-1} \mathbf{x}_i^{(t)} \cdot log(\hat{\mathbf{y}}_i^{(t)})
+\end{equation}
+BPTT je u biti propagirani stohastički gradijentni spust.
+Težine se mijenjaju prema pravilu:
+\begin{equation}
+\Delta w = - \eta \frac{\partial L}{\partial w}
+\end{equation}
+
+\section{Opis eksperimentalnih rezultata}\label{FAT}
+\paragraph{optimiranje hiperparametara}
+--
+
+\begin{table}[htbp]
+\caption{Table Type Styles}
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
+\cline{2-4} 
+\textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
+\hline
+copy& More table copy$^{\mathrm{a}}$& &  \\
+\hline
+\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
+\end{tabular}
+\label{tab1}
+\end{center}
+\end{table}
+
+\subsection{Usporedba rezultata}
+--
+
+\section{Zaključak}
+--
+
+
+\begin{thebibliography}{00}
+\bibitem{b1} G. Eason, B. Noble, and I. N. Sneddon, ``On certain integrals of Lipschitz-Hankel type involving products of Bessel functions,'' Phil. Trans. Roy. Soc. London, vol. A247, pp. 529--551, April 1955.
+\end{thebibliography}
+
+
+
+\end{document}
