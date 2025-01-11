@@ -1,42 +1,37 @@
-import tensorflow as tf
+import numpy as np
 
 
-with open('Croatia_Cities.txt', 'r', encoding='utf-8') as file:
-    CRO_names = file.readlines()
-
-with open('Canada_Cities.txt', 'r', encoding='utf-8') as file:
-    CAN_names = file.readlines()
-
-with open('Deutschland_Cities.txt', 'r', encoding='utf-8') as file:
-    GER_names = file.readlines()
-
-with open('UK_Cities.txt', 'r', encoding='utf-8') as file:
-    UK_names = file.readlines()
-
-with open('US_Cities.txt', 'r', encoding='utf-8') as file:
-    USA_names = file.readlines()
-
-with open('Spain_Cities.txt', 'r', encoding='utf-8') as file:
-    SPN_names = file.readlines()
-
-with open('France_Cities.txt', 'r', encoding='utf-8') as file:
-    FRA_names = file.readlines()
-
-
-CRO_names = list(map(lambda s: s[:-1].lower(), CRO_names))
-CAN_names = list(map(lambda s: s[:-1].lower(), CAN_names))
-GER_names = list(map(lambda s: s[:-1].lower(), GER_names))
-UK_names = list(map(lambda s: s[:-1].lower(), UK_names))
-USA_names = list(map(lambda s: s[:-1].lower(), USA_names))
-SPN_names = list(map(lambda s: s[:-1].lower(), SPN_names))
-FRA_names = list(map(lambda s: s[:-1].lower(), FRA_names))
-
-
-
+files = ['Croatia_Cities.txt', 'Canada_Cities.txt', 'Deutschland_Cities.txt', 'UK_Cities.txt', 'US_Cities.txt','Spain_Cities.txt','France_Cities.txt']
 countries = ['CRO', 'CAN', 'GER', 'UK', 'USA', 'SPN', 'FRA']
-chars = [f'<START_{tag}>' for tag in countries] + ['<END>'] + sorted(set("".join(CRO_names + CAN_names + GER_names + UK_names + USA_names + SPN_names + FRA_names)))
-char_to_idx = {char: idx for idx, char in enumerate(chars)}
-idx_to_char = {idx: char for char, idx in char_to_idx.items()}
 
 
+def get_names(filename, country_tag):
 
+    with open(filename, 'r', encoding='utf-8') as file:
+        names = file.readlines()
+
+    names = list(map(lambda s: s[:-1].lower(), names))
+
+    chars = [f'<START_{country_tag}>','<END>'] + sorted(set("".join(names)))
+
+    vectors = {}
+
+    for idx, char in enumerate(chars):
+        vectors[char] = [0] * len(chars)
+        vectors[char][idx] = 1
+
+    
+    return (names, chars, vectors)
+
+
+CRO_names, CRO_chars, CRO_vectors = get_names('Croatia_Cities.txt','CRO')
+CAN_names, CAN_chars, CAN_vectors = get_names('Canada_Cities.txt','CAN')
+GER_names, GER_chars, GER_vectors = get_names('Deutschland_Cities.txt','GER')
+UK_names, UK_chars, UK_vectors = get_names('UK_Cities.txt','UK')
+USA_names, USA_chars, USA_vectors = get_names('US_Cities.txt','USA')
+SPN_names, SPN_chars, SPN_vectors = get_names('Spain_Cities.txt','SPN')
+FRA_names, FRA_chars, FRA_vectors = get_names('France_Cities.txt','FRA')
+
+
+#char_to_idx = {char: idx for idx, char in enumerate(chars)}
+#idx_to_char = {idx: char for char, idx in char_to_idx.items()}
