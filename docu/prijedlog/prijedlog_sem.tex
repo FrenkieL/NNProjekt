@@ -7,6 +7,7 @@
 \usepackage[most]{tcolorbox}
 \usepackage{lscape}
 \usepackage{float}
+\usepackage{amssymb}
 \usepackage{multirow}
 
 \renewcommand{\thesection}{(\Roman{section}.) }
@@ -80,27 +81,41 @@ Funkcija pogreške će biti određena naknadno.\\
 
 \section{Zadatci na projektu i raspodjela posla}
 Ostvarenje projekta podrazumijeva slijedeće zadatke:
-\begin{longtable}{|p{100pt}| p{110pt} |p{20pt}| p{80pt}|}
+\newpage
+\begin{longtable}{|p{110pt} |p{200pt}| p{50pt}|}
 \hline
- & \textbf{Zadatak} & \textbf{ETA} & \textbf{Developeri}\\
+ \textbf{Zadatak} & \textbf{Podzadaci} & \textbf{Članovi}\\
 \hline
-\multirow{8}{*}{Dokumentacija} & Uvod & 5h \\ \cline{3-3}
- & Opis problema & 3h \\ \cline{2-3}
- & Opis eksperimentalnih rezultata & 1d & Grupa \\ \cline{2-3}
- & Diskusija i usporedba rezultata & 1d \\ \cline{2-3}
- & Lektoriranje & 1d \\ \cline{2-3}
- & Zaključak & 4h \\ \hline
-\multirow{2}{*}{Administrativni poslovi} & Održavanje GitHub-a & & Lubina, Jurković\\ \cline{2-3} & Sastanci & & Grupa \\ \hline
-\multirow{1}{*}{Izrada prezentacije} &  & 3d & Jurković \\ \hline
-\multirow{3}{*}{Implementacija} & Obrada ulaznog skupa podataka & 1w & Granić,  Logarušić, Lubina \\ \cline{2-3}
-& Implementacija modela & 1w & Jurković, Čogelja, Logarušić \\ \hline
-& Dizajn modela u kerasu & 1w & Lubina, Juvančić, Granić \\ \cline{2-3}
-\multirow{2}{*}{Treniranje}
- & Treniranje modela & 2d & Jurković, Čogelja, Logarušić\\ \hline
-\multirow{3}{*}{Validacija} & Ručna validacija modela & 1w & Jurković, Granić,  Logarušić\\ \cline{2-3} 
- & Podešavanje hiperparametara u kerasu & 1w & Lubina, Juvančić, Granić  \\ \hline 
- 
-\caption{Zadaci i estimacije}
+Dokumentacija & \begin{itemize}
+\item usporedba rezultata
+\item arhitektura
+\item ažurirat po potrebi
+\end{itemize} & Lubina, Čogelja \\ \hline
+Prezentacija & & -- \\ \hline
+Tokenizacija & \begin{itemize}
+\item Proširiti $\Sigma$ start tokenima pojedinih jezika
+\end{itemize} & Granić \\ \hline
+Implementacija & 
+\begin{itemize}
+\item Implementacija modela u Kerasu
+\item Treniranje
+\item Optimizacija hiperparametara
+\end{itemize} 
+\begin{itemize}
+\renewcommand{\labelitemi}{\scriptsize$\blacksquare$}
+\item Naci kako se u kerasu može tokenizirat ulazna abeceda
+\item Naci kako se moze mijenjati dimenzija skrivenog stanja LSTM ćelije
+\item Output mora bit vjerojatnost slova, a ne one-hot.
+\end{itemize}
+ & Jurković, Juvančić, Logarušić \\ \hline
+ \textcolor{gray}{Custom ćelija} & \textcolor{gray}{
+ Moguće je da ćemo morat radit custom ćeliju, ako:
+ \begin{enumerate}
+ \item se ne mogu drugačije postić zahtjevi iz prethodnog retka
+ \item nam kaze asistent da moramo još "zakomlplicirat" projekt
+ \end{enumerate}
+ }& \textcolor{gray}{--} \\ \hline
+\caption{Podjela posla}
 
 \end{longtable}
 \section{Vremenski plan rada}
