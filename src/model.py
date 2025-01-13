@@ -1,51 +1,87 @@
 import numpy as np
+import tensorflow as tf
+from abc import ABC, abstractmethod
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, LSTM, Dense
-from sklearn.model_selection import train_test_split
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.callbacks import Callback
+from tensorflow.keras.preprocessing.text import Tokenizer
+
+class LangInfo:
+    def __init__(self, langname: str, filename: str):
+        self.langname = langname
+        self.filename = filename
+
+class NamesDataset(ABC):
+
+    @abstractmethod
+    def load_names(self) -> tuple:
+        pass
+
+class NamesDatasetChar:
+    def __init__(self, linfo: LangInfo):
+        self.linfo = linfo
+        self.X = []
+        self.y = []
+
+    def load_names(self) -> tuple:
+        with open(self.linfo.filename, 'r', encoding='utf-8') as file:
+            self.X = file.readlines()
+
+        self.X = list(map(lambda s: s[:-1].lower(), self.X))
+
+        for idx, name in enumerate(self.X):
+            self.X[idx] = []
+            for i in range(1, len(name)):
+                self.X[idx].append(name[:i])
+                self.y.append(name[i])
+
+        return (self.X, self.y)
+    
+class NamesDatasetToken:
+    def __init__(self, linfo: LangInfo):
+        self.linfo = linfo
+        self.X = []
+        self.y = []
+        self.tokenizer = None
+
+    def load_names(self) -> tuple:
+        with open(self.linfo.filename, 'r', encoding='utf-8') as file:
+            names = file.readlines()
+
+        tokenizer = Tokenizer(char_level=True)
+        tokenizer.fit_on_texts(names)
+
+        sequences = tokenizer.texts_to_sequences(names)
+
+        for seq in sequences:
+            for i in range(1, len(seq)):
+                self.X.append(seq[:i])
+                self.y.append(seq[i])
+
+        max_seq_length = max([len(seq) for seq in self.X])
+        self.X = pad_sequences(self.X, maxlen=max_seq_length, padding='pre')
+
+        self.y = tf.keras.utils.to_categorical(self.y, num_classes=len(tokenizer.word_index) + 1)
+        return (self.X, self.y)
 
 
-files = ['Croatia_Cities.txt', 'Canada_Cities.txt', 'Deutschland_Cities.txt', 'UK_Cities.txt', 'US_Cities.txt','Spain_Cities.txt','France_Cities.txt']
-countries = ['CRO', 'CAN', 'GER', 'UK', 'USA', 'SPN', 'FRA']
 
+data_path = '../data/'
+datasets = [
+    NamesDatasetToken(LangInfo('CRO', data_path + 'Croatia_Cities.txt')),
+    NamesDatasetToken(LangInfo('CAN', data_path + 'Canada_Citites.txt')),
+    NamesDatasetToken(LangInfo('GER', data_path + 'Deutschland_Cities.txt')),
+    NamesDatasetToken(LangInfo('UK', data_path + 'UK_Cities.txt')),
+    NamesDatasetToken(LangInfo('US', data_path + 'US_Cities.txt')),
+    NamesDatasetToken(LangInfo('SPN', data_path + 'Spain_Citites.txt')),
+    NamesDatasetToken(LangInfo('FRA', data_path + 'France_Cities.txt'))
+]
 
-def get_names(filename, country_tag):
-
-    with open(filename, 'r', encoding='utf-8') as file:
-        names = file.readlines()
-
-    names = list(map(lambda s: s[:-1].lower(), names))
-
-    chars = [f'<START_{country_tag}>','<END>'] + sorted(set("".join(names)))
-
-    vectors = {}
-
-    for idx, char in enumerate(chars):
-        vectors[char] = [0] * len(chars)
-        vectors[char][idx] = 1
-
-    return (names, chars, vectors)
-
-
-CRO_names, CRO_chars, CRO_vectors = get_names('Croatia_Cities.txt','CRO')
-CAN_names, CAN_chars, CAN_vectors = get_names('Canada_Cities.txt','CAN')
-GER_names, GER_chars, GER_vectors = get_names('Deutschland_Cities.txt','GER')
-UK_names, UK_chars, UK_vectors = get_names('UK_Cities.txt','UK')
-USA_names, USA_chars, USA_vectors = get_names('US_Cities.txt','USA')
-SPN_names, SPN_chars, SPN_vectors = get_names('Spain_Cities.txt','SPN')
-FRA_names, FRA_chars, FRA_vectors = get_names('France_Cities.txt','FRA')
-
-
-#char_to_idx = {char: idx for idx, char in enumerate(chars)}
-#idx_to_char = {idx: char for char, idx in char_to_idx.items()}
-
-language_chars = [CRO_chars, CAN_chars, GER_chars, UK_chars, USA_chars, SPN_chars, FRA_chars]
-city_names = [CRO_names, CAN_names, GER_names, UK_names, USA_names, SPN_names, FRA_names]
-
-# ovdje ce ulaz biti X, y, test
-# X nam je sequence - [[1], [1, 2], [1, 2, 3]] (redoslijed slova imena)
-# y nam je [2, 3] - sljedeca slova
-# treba nam padding jer cemo sigurno imati najduze ime koje se isto tako predaje kao input length u LSTMu
-X_train, X_pred, y_train, y_pred = train_test_split(X, y, test_size=0.3)
+#trenutno staticki, inace se bira na GUI-u
+curr_country = 'CRO'
+curr_dataset = [d for d in datasets if d.linfo.langname == curr_country][0]
+X, y = curr_dataset.load_names()
 
 model = Sequential()
 model.add(Embedding(input_dim=len(language_chars[selected_country]), output_dim="100", input_length=max(len(name) for name in city_names[selected_country])))
@@ -54,5 +90,23 @@ model.add(Dense(units=len(language_chars[selected_country]), activation='softmax
 
 model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
 
-# batch_size -> nakon koliko se primjera updateaju tezine modela
-fitting = modle.fit(X_train, y_train, validation_data(X_pred, y_pred), epochs=30, batch_size=32)
+# Compile the model
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+# Define a custom callback to store training progress
+class TrainingProgressCallback(Callback):
+    def on_train_begin(self, logs=None):
+        self.epochs = []
+        self.accuracies = []
+        self.losses = []
+        
+    def on_epoch_end(self, epoch, logs=None):
+        accuracy_percentage = logs.get('accuracy') * 100
+        loss_percentage = logs.get('loss') * 100
+        self.epochs.append(epoch + 1)
+        self.accuracies.append(accuracy_percentage)
+        self.losses.append(loss_percentage)
+
+# Train the model with the progress callback
+progress_callback = TrainingProgressCallback()
+model.fit(X, y, epochs=100, verbose=0, callbacks=[progress_callback])
