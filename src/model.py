@@ -96,7 +96,7 @@ def train_and_save_models(datasets):
         model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
 
         # Treniranje modela
-        model.fit(X, y, epochs=30, verbose=1)
+        model.fit(X, y, epochs=100, verbose=1)
 
         # Spremanje modela i tokenizera
         model.save(model_path)
@@ -162,6 +162,7 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
     # Nasumično odabiremo početni znak
     seed_text = random.choice(valid_chars)
     generated_text = seed_text.upper()  # Inicijalizira generirani tekst s nasumičnim početnim znakom
+    capitalize_next = False  # Zastavica za veliko slovo nakon zareza
     ind = 0
     max_iterations = 100  # Ograničenje iteracija za sprječavanje beskonačne petlje
     
@@ -185,6 +186,15 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
             print("Prekidam petlju: pronađen <END> ili prazan znak")
             break
         
+        # Ako je prethodni znak bio zarez, naredni znak čini velikim slovom
+        if capitalize_next and predicted_char.isalpha():
+            predicted_char = predicted_char.upper()
+            capitalize_next = False  # Resetiraj zastavicu
+
+        # Provjera za zarez i postavljanje zastavice
+        if predicted_char == ',':
+            capitalize_next = True
+
         # Dodavanje predikcije u generirani tekst
         generated_text += predicted_char
         seed_text += predicted_char
