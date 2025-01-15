@@ -1,3 +1,5 @@
+import os
+import pickle
 import random
 import numpy as np
 import tensorflow as tf
@@ -7,6 +9,7 @@ from tensorflow.keras.layers import Embedding, LSTM, Dense
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.models import load_model
 
 class LangInfo:
     def __init__(self, langname: str, filename: str):
@@ -66,47 +69,86 @@ class NamesDatasetToken:
         self.y = tf.keras.utils.to_categorical(self.y, num_classes=len(self.tokenizer.word_index) + 1)
         return (self.X, self.y)
 
+def train_and_save_models(datasets, save_path='../saved_models'):
+    os.makedirs(save_path, exist_ok=True)
 
+    for dataset in datasets:
+        print(f"Treniram model za jezik: {dataset.linfo.langname}")
+        X, y = dataset.load_names()
+        
+        model = Sequential()
+        model.add(Embedding(input_dim=len(dataset.tokenizer.word_index)+1, output_dim=100, input_length=max(len(seq) for seq in X)))
+        model.add(LSTM(units=128))
+        model.add(Dense(units=len(dataset.tokenizer.word_index)+1, activation='softmax'))
+
+        model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
+        model.fit(X, y, epochs=30, verbose=1)
+
+        # Spremanje modela i tokenizatora
+        model_save_path = os.path.join(save_path, f"{dataset.linfo.langname}_model.h5")
+        tokenizer_save_path = os.path.join(save_path, f"{dataset.linfo.langname}_tokenizer.pkl")
+
+        model.save(model_save_path)
+        with open(tokenizer_save_path, 'wb') as f:
+            pickle.dump(dataset.tokenizer, f)
+
+        print(f"Model i tokenizer za {dataset.linfo.langname} spremljeni su u {save_path}")
 
 data_path = '../data/'
 datasets = [
     NamesDatasetToken(LangInfo('CRO', data_path + 'Croatia_Cities.txt')),
-    NamesDatasetToken(LangInfo('CAN', data_path + 'Canada_Citites.txt')),
+    NamesDatasetToken(LangInfo('CAN', data_path + 'Canada_Cities.txt')),
     NamesDatasetToken(LangInfo('GER', data_path + 'Deutschland_Cities.txt')),
     NamesDatasetToken(LangInfo('UK', data_path + 'UK_Cities.txt')),
     NamesDatasetToken(LangInfo('US', data_path + 'US_Cities.txt')),
-    NamesDatasetToken(LangInfo('SPN', data_path + 'Spain_Citites.txt')),
+    NamesDatasetToken(LangInfo('SPN', data_path + 'Spain_Cities.txt')),
     NamesDatasetToken(LangInfo('FRA', data_path + 'France_Cities.txt'))
 ]
 
+def load_model_and_tokenizer(lang_code):
+    """Učitava model i pripadajući tokenizer za određeni jezik."""
+    
+    # Putanje do spremljenih modela i tokenizera
+    model_path = f'../models/{lang_code}_model.h5'
+    tokenizer_path = f'../models/{lang_code}_tokenizer.pkl'
+    
+    # Učitavanje modela
+    model = load_model(model_path)
+    
+    # Učitavanje tokenizera
+    with open(tokenizer_path, 'rb') as f:
+        tokenizer = pickle.load(f)
+    
+    return model, tokenizer
+
 #trenutno staticki, inace se bira na GUI-u
-curr_country = 'CRO'
-curr_dataset = [d for d in datasets if d.linfo.langname == curr_country][0]
-X, y = curr_dataset.load_names()
+# curr_country = 'CRO'
+# curr_dataset = [d for d in datasets if d.linfo.langname == curr_country][0]
+# X, y = curr_dataset.load_names()
 
-model = Sequential()
-model.add(Embedding(input_dim=len(curr_dataset.tokenizer.word_index)+1, output_dim=100, input_length=max(len(name) for name in X)+1))
-model.add(LSTM(units=128))
-model.add(Dense(units=len(curr_dataset.tokenizer.word_index)+1, activation='softmax'))
+# model = Sequential()
+# model.add(Embedding(input_dim=len(curr_dataset.tokenizer.word_index)+1, output_dim=100, input_length=max(len(name) for name in X)+1))
+# model.add(LSTM(units=128))
+# model.add(Dense(units=len(curr_dataset.tokenizer.word_index)+1, activation='softmax'))
 
-model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
+# model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
 
-# Compile the model
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+# # Compile the model
+# model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-# Define a custom callback to store training progress
-class TrainingProgressCallback(Callback):
-    def on_train_begin(self, logs=None):
-        self.epochs = []
-        self.accuracies = []
-        self.losses = []
+# # Define a custom callback to store training progress
+# class TrainingProgressCallback(Callback):
+#     def on_train_begin(self, logs=None):
+#         self.epochs = []
+#         self.accuracies = []
+#         self.losses = []
         
-    def on_epoch_end(self, epoch, logs=None):
-        accuracy_percentage = logs.get('accuracy') * 100
-        loss_percentage = logs.get('loss') * 100
-        self.epochs.append(epoch + 1)
-        self.accuracies.append(accuracy_percentage)
-        self.losses.append(loss_percentage)
+#     def on_epoch_end(self, epoch, logs=None):
+#         accuracy_percentage = logs.get('accuracy') * 100
+#         loss_percentage = logs.get('loss') * 100
+#         self.epochs.append(epoch + 1)
+#         self.accuracies.append(accuracy_percentage)
+#         self.losses.append(loss_percentage)
 
 def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
     valid_chars = [char for char, index in tokenizer.word_index.items() if char != stop_char]
@@ -146,11 +188,13 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
 
     return generated_text
 
-# Train the model with the progress callback
-progress_callback = TrainingProgressCallback()
-model.fit(X, y, epochs=100, verbose=2, callbacks=[progress_callback])
+# # Train the model with the progress callback
+# progress_callback = TrainingProgressCallback()
+# model.fit(X, y, epochs=100, verbose=2, callbacks=[progress_callback])
 
-max_seq_length = max([len(seq) for seq in X])  # Maksimalna duljina sekvenci iz trening skupa
-new_name = generate_name(model, curr_dataset.tokenizer, max_seq_length)
-print(f"Generirani naziv: {new_name}")
+# max_seq_length = max([len(seq) for seq in X])  # Maksimalna duljina sekvenci iz trening skupa
+# new_name = generate_name(model, curr_dataset.tokenizer, max_seq_length)
+# print(f"Generirani naziv: {new_name}")
+
+train_and_save_models(datasets)
 

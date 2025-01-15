@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from model import load_model_and_tokenizer, generate_name
 from tkinter import messagebox
 import random
 
@@ -18,13 +19,18 @@ def get_chosen_country_index():
 
 def on_click_function():
     selected_country = country_var.get()
+    lang_codes = {'Croatia': 'CRO', 'Canada': 'CAN', 'Germany': 'GER', 'UK': 'UK', 'USA': 'US', 'Spain': 'SPN', 'France': 'FRA'}
 
     if not selected_country or selected_country == "Select a Country":
+        messagebox.showwarning("Warning", "Please select a country.")
         return
-    
-    # poziva se generiranje imena
-    # nakon sto se dobiju generirana imena poziva se display_city_names()
-    display_city_names([f"{selected_country} City {i+1}" for i in range(25)])
+
+    lang_code = lang_codes[selected_country]
+    model, tokenizer = load_model_and_tokenizer(lang_code)
+    max_seq_length = 20  # ili postavi prema duljini podataka
+
+    generated_city_names = [generate_name(model, tokenizer, max_seq_length) for _ in range(25)]
+    display_city_names(generated_city_names)
 
 def display_city_names(generated_city_names):
     for widget in city_list_frame.winfo_children():
