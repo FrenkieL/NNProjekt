@@ -69,30 +69,39 @@ class NamesDatasetToken:
         self.y = tf.keras.utils.to_categorical(self.y, num_classes=len(self.tokenizer.word_index) + 1)
         return (self.X, self.y)
 
-def train_and_save_models(datasets, save_path='../saved_models'):
-    os.makedirs(save_path, exist_ok=True)
+import os
 
+def train_and_save_models(datasets):
     for dataset in datasets:
-        print(f"Treniram model za jezik: {dataset.linfo.langname}")
+        lang_code = dataset.linfo.langname
+        model_path = f'../saved_models/{lang_code}_model.h5'
+        tokenizer_path = f'../saved_models/{lang_code}_tokenizer.pkl'
+
+        # Provjera postoje li već spremljeni modeli
+        if os.path.exists(model_path) and os.path.exists(tokenizer_path):
+            print(f"Model za jezik {lang_code} već postoji, preskačem treniranje.")
+            continue
+
+        print(f"Treniram model za jezik: {lang_code}")
+
+        # Učitavanje podataka
         X, y = dataset.load_names()
-        
+
+        # Kreiranje modela
         model = Sequential()
-        model.add(Embedding(input_dim=len(dataset.tokenizer.word_index)+1, output_dim=100, input_length=max(len(seq) for seq in X)))
+        model.add(Embedding(input_dim=len(dataset.tokenizer.word_index)+1, output_dim=100, input_length=X.shape[1]))
         model.add(LSTM(units=128))
         model.add(Dense(units=len(dataset.tokenizer.word_index)+1, activation='softmax'))
 
         model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
+
+        # Treniranje modela
         model.fit(X, y, epochs=30, verbose=1)
 
-        # Spremanje modela i tokenizatora
-        model_save_path = os.path.join(save_path, f"{dataset.linfo.langname}_model.h5")
-        tokenizer_save_path = os.path.join(save_path, f"{dataset.linfo.langname}_tokenizer.pkl")
-
-        model.save(model_save_path)
-        with open(tokenizer_save_path, 'wb') as f:
+        # Spremanje modela i tokenizera
+        model.save(model_path)
+        with open(tokenizer_path, 'wb') as f:
             pickle.dump(dataset.tokenizer, f)
-
-        print(f"Model i tokenizer za {dataset.linfo.langname} spremljeni su u {save_path}")
 
 data_path = '../data/'
 datasets = [
@@ -106,11 +115,9 @@ datasets = [
 ]
 
 def load_model_and_tokenizer(lang_code):
-    """Učitava model i pripadajući tokenizer za određeni jezik."""
-    
     # Putanje do spremljenih modela i tokenizera
-    model_path = f'../models/{lang_code}_model.h5'
-    tokenizer_path = f'../models/{lang_code}_tokenizer.pkl'
+    model_path = f'../saved_models/{lang_code}_model.h5'
+    tokenizer_path = f'../saved_models/{lang_code}_tokenizer.pkl'
     
     # Učitavanje modela
     model = load_model(model_path)
