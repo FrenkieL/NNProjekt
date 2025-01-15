@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import tensorflow as tf
 from abc import ABC, abstractmethod
@@ -47,12 +48,12 @@ class NamesDatasetToken:
 
     def load_names(self) -> tuple:
         with open(self.linfo.filename, 'r', encoding='utf-8') as file:
-            names = file.readlines()
+            names = [line.strip() + '<' for line in file.readlines()]
 
-        tokenizer = Tokenizer(char_level=True)
-        tokenizer.fit_on_texts(names)
+        self.tokenizer = Tokenizer(char_level=True)
+        self.tokenizer.fit_on_texts(names)
 
-        sequences = tokenizer.texts_to_sequences(names)
+        sequences = self.tokenizer.texts_to_sequences(names)
 
         for seq in sequences:
             for i in range(1, len(seq)):
@@ -62,7 +63,7 @@ class NamesDatasetToken:
         max_seq_length = max([len(seq) for seq in self.X])
         self.X = pad_sequences(self.X, maxlen=max_seq_length, padding='pre')
 
-        self.y = tf.keras.utils.to_categorical(self.y, num_classes=len(tokenizer.word_index) + 1)
+        self.y = tf.keras.utils.to_categorical(self.y, num_classes=len(self.tokenizer.word_index) + 1)
         return (self.X, self.y)
 
 
@@ -84,9 +85,9 @@ curr_dataset = [d for d in datasets if d.linfo.langname == curr_country][0]
 X, y = curr_dataset.load_names()
 
 model = Sequential()
-model.add(Embedding(input_dim=len(language_chars[selected_country]), output_dim="100", input_length=max(len(name) for name in city_names[selected_country])))
+model.add(Embedding(input_dim=len(curr_dataset.tokenizer.word_index)+1, output_dim=100, input_length=max(len(name) for name in X)+1))
 model.add(LSTM(units=128))
-model.add(Dense(units=len(language_chars[selected_country]), activation='softmax'))
+model.add(Dense(units=len(curr_dataset.tokenizer.word_index)+1, activation='softmax'))
 
 model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
 
@@ -107,6 +108,49 @@ class TrainingProgressCallback(Callback):
         self.accuracies.append(accuracy_percentage)
         self.losses.append(loss_percentage)
 
+def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
+    valid_chars = [char for char, index in tokenizer.word_index.items() if char != stop_char]
+    # Nasumično odabiremo početni znak
+    seed_text = random.choice(valid_chars)
+    generated_text = seed_text.upper()  # Inicijalizira generirani tekst s nasumičnim početnim znakom
+    ind = 0
+    max_iterations = 100  # Ograničenje iteracija za sprječavanje beskonačne petlje
+    
+    while ind < max_iterations:
+        print(f"Alo {ind}, Seed text: '{seed_text}'")
+        
+        # Pretvaranje teksta u sekvencu brojeva
+        sequence = tokenizer.texts_to_sequences([seed_text])[0]
+        sequence = pad_sequences([sequence], maxlen=max_seq_length, padding='pre')
+        
+        # Predikcija sljedećeg znaka
+        predicted_probabilities = model.predict(sequence, verbose=0)[0]
+        predicted_id = np.argmax(predicted_probabilities)
+        
+        # Pronalaženje znaka iz predikcije
+        predicted_char = tokenizer.index_word.get(predicted_id, '')
+        print(f"Predicted ID: {predicted_id}, Predicted char: '{predicted_char}'")
+        
+        # Provjera zaustavnog znaka ili prazne predikcije
+        if predicted_char == stop_char or predicted_char == '':
+            print("Prekidam petlju: pronađen <END> ili prazan znak")
+            break
+        
+        # Dodavanje predikcije u generirani tekst
+        generated_text += predicted_char
+        seed_text += predicted_char
+        ind += 1
+    
+    if ind == max_iterations:
+        print("Prekida se nakon maksimalnog broja iteracija")
+
+    return generated_text
+
 # Train the model with the progress callback
 progress_callback = TrainingProgressCallback()
-model.fit(X, y, epochs=100, verbose=0, callbacks=[progress_callback])
+model.fit(X, y, epochs=100, verbose=2, callbacks=[progress_callback])
+
+max_seq_length = max([len(seq) for seq in X])  # Maksimalna duljina sekvenci iz trening skupa
+new_name = generate_name(model, curr_dataset.tokenizer, max_seq_length)
+print(f"Generirani naziv: {new_name}")
+
