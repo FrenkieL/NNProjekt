@@ -32,6 +32,10 @@ def on_click_function():
     generated_city_names = set() 
     while len(generated_city_names) < 25:
         name = generate_name(model, tokenizer, max_seq_length)
+
+        if name and name[0].islower():
+            name = name[0].upper() + name[1:]
+        
         generated_city_names.add(name)  
 
     display_city_names(list(generated_city_names)) 

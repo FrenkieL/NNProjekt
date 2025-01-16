@@ -238,7 +238,7 @@ def load_model_and_tokenizer(lang_code):
 #         self.losses.append(loss_percentage)
 
 def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
-    valid_chars = [char for char, index in tokenizer.word_index.items() if char != stop_char]
+    valid_chars = [char for char, index in tokenizer.word_index.items() if char.isalpha() and char != stop_char]
     # Nasumično odabiremo početni znak
     seed_text = random.choice(valid_chars)
     generated_text = seed_text.upper()  # Inicijalizira generirani tekst s nasumičnim početnim znakom
