@@ -29,8 +29,12 @@ def on_click_function():
     model, tokenizer = load_model_and_tokenizer(lang_code)
     max_seq_length = 20  # ili postavi prema duljini podataka
 
-    generated_city_names = [generate_name(model, tokenizer, max_seq_length) for _ in range(25)]
-    display_city_names(generated_city_names)
+    generated_city_names = set() 
+    while len(generated_city_names) < 25:
+        name = generate_name(model, tokenizer, max_seq_length)
+        generated_city_names.add(name)  
+
+    display_city_names(list(generated_city_names)) 
 
 def display_city_names(generated_city_names):
     for widget in city_list_frame.winfo_children():
