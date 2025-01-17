@@ -5,13 +5,13 @@ import numpy as np
 import tensorflow as tf
 from abc import ABC, abstractmethod
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, LSTM, Dense
+from tensorflow.keras.layers import Embedding, LSTM, Dense, Lambda
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import EarlyStopping
-from kerastuner.tuners import RandomSearch
+from kerastuner.tuners import RandomSearch, GridSearch
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
@@ -78,73 +78,66 @@ class NamesDatasetToken:
         return split_data(self.X, self.y, test_size=0.2)
     
 
-def build_lstm_model(hyperparameters):
+def build_lstm_model(dataset, X_train, hyperparameters):
     model = Sequential()
 
-    # Tune the number of units in the LSTM layer
-    model.add(LSTM(units=hyperparameters.Int('lstm_units', min_value=32, max_value=512, step=32),
-                   input_shape=(sequence_length, num_features)))
+    iterations = 5
+    minval, maxval = 32, 512
+    step = (maxval - minval)/iterations
+    model.add(Embedding(input_dim=len(dataset.tokenizer.word_index) + 1,
+                         output_dim=hyperparameters.Int('embedding_units', min_value=minval, max_value=maxval, step=step), 
+                        input_length=X_train.shape[1]))
+
+    model.add(LSTM(units=hyperparameters.Int('lstm_units', min_value=minval, max_value=maxval, step=step)))
+
+
+    minval, maxval = 0.2, 2
+    step = (maxval - minval)/iterations
+    model.add(Lambda(lambda y: y / hyperparameters.Float('temperature', min_value=minval, max_value=maxval, step=step, sampling='linear')))
     
-    # Tune the dropout rate
-    model.add(Dropout(rate=hyperparameters.Float('dropout_rate', min_value=0.1, max_value=0.5, step=0.1)))
+    model.add(Dense(units=len(dataset.tokenizer.word_index) + 1, 
+                    activation='sigmoid'))
     
-    # Tune the number of Dense layer units
-    model.add(Dense(units=hyperparameters.Int('dense_units', min_value=32, max_value=512, step=32), 
-                    activation='relu'))
-    
-    # Output layer
-    model.add(Dense(1))
-    
-    # Tune the learning rate for the optimizer
+    minval, maxval = 1e-4, 1e-2
+    step = (maxval - minval)/iterations
     model.compile(optimizer=tf.keras.optimizers.Adam(
-                    learning_rate=hyperparameters.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')),
-                  loss='mse')
+                    learning_rate=hyperparameters.Float('learning_rate', min_value=minval, max_value=maxval, step=step, sampling='linear')),
+                  loss='categorical_crossentropy')
     
     return model
     
-def tune_hyperparameters(datasets, langs):
+def tune_hyperparameters(datasets, lang):
     for dataset in datasets:
         lang_code = dataset.linfo.langname
         model_path = f'../saved_models/{lang_code}_model.h5'
         tokenizer_path = f'../saved_models/{lang_code}_tokenizer.pkl'
 
         # Provjera postoje li već spremljeni modeli
-        if os.path.exists(model_path) and os.path.exists(tokenizer_path) and not lang_code in set(langs):
-            print(f"Model za jezik {lang_code} već postoji, preskačem treniranje.")
+        if os.path.exists(model_path) and os.path.exists(tokenizer_path) and lang_code != lang:
+            print(f"Model za jezik {lang_code} već postoji, preskačem optimiranje.")
             continue
 
-        print(f"Treniram model za jezik: {lang_code}")
+        print(f"Optimiram model za jezik: {lang_code}")
 
         # Učitavanje podataka
         X_train, X_test, y_train, y_test = dataset.load_names()
 
-        # Model
-        model = Sequential([
-            Embedding(input_dim=len(dataset.tokenizer.word_index) + 1, output_dim=100, input_length=X_train.shape[1]),
-            LSTM(units=128),
-            Dense(units=len(dataset.tokenizer.word_index) + 1, activation='softmax')
-        ])
-        model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
+        tuner = GridSearch(
+            lambda h: build_lstm_model(dataset, X_train, h),
+            objective='val_loss',
+            max_trials=300,
+            executions_per_trial=1,
+            directory='tuning_results',
+            project_name='lstm_model_tuning'
+        )
 
-    tuner = RandomSearch(
-        build_lstm_model,
-        objective='val_loss',
-        max_trials=10,
-        executions_per_trial=1,
-        directory='tuning_results',
-        project_name='lstm_model_tuning'
-    )
+        early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+        tuner.search(X_train, y_train, epochs=50, validation_data=(X_test, y_test), callbacks=[early_stopping_callback])
+        best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
 
-    # Set up early stopping to prevent overfitting
-    early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
-
-    # Search for the best hyperparameters
-    tuner.search(X_train, epochs=50, validation_data=X_test, callbacks=[early_stopping_callback])
-
-    # Get the best hyperparameters
-    best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
-
-    return best_hyperparameters
+        return best_hyperparameters
+    
+    return None
 
 def train_and_save_models(datasets, langs):
     for dataset in datasets:
@@ -169,6 +162,8 @@ def train_and_save_models(datasets, langs):
             Dense(units=len(dataset.tokenizer.word_index) + 1, activation='softmax')
         ])
         model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
+        print("MODEL:")
+        model.summary()
 
         early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
@@ -244,8 +239,6 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
     max_iterations = 100 
     
     while ind < max_iterations:
-        print(f"Alo {ind}, Seed text: '{seed_text}'")
-        
         # Pretvaranje teksta u sekvencu brojeva
         sequence = tokenizer.texts_to_sequences([seed_text])[0]
         sequence = pad_sequences([sequence], maxlen=max_seq_length, padding='pre')
@@ -256,11 +249,9 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
         
         # Pronalaženje znaka iz predikcije
         predicted_char = tokenizer.index_word.get(predicted_id, '')
-        print(f"Predicted ID: {predicted_id}, Predicted char: '{predicted_char}'")
         
         # Provjera zaustavnog znaka ili prazne predikcije
         if predicted_char == stop_char or predicted_char == '':
-            print("Prekidam petlju: pronađen <END> ili prazan znak")
             break
         
         # Provjera da prvo slovo mora biti veliko
@@ -280,8 +271,26 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
         generated_text += predicted_char
         seed_text += predicted_char
         ind += 1
-    
-    if ind == max_iterations:
-        print("Prekida se nakon maksimalnog broja iteracija")
 
     return generated_text
+
+
+#generate name with some model
+# Model
+cro_dataset = [d for d in datasets if d.linfo.langname == "CRO"][0]
+
+X_train, X_test, y_train, y_test = cro_dataset.load_names()
+
+hyperparams = tune_hyperparameters(datasets, "US")
+print("HYPERS:")
+print(hyperparams)
+
+model = Sequential([
+    Embedding(input_dim=len(cro_dataset.tokenizer.word_index) + 1, output_dim=100, input_length=X_train.shape[1]),
+    LSTM(units=128),
+    Dense(units=len(cro_dataset.tokenizer.word_index) + 1, activation='softmax')
+])
+model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
+
+print("MODEL:")
+model.summary()

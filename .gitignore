@@ -3,3 +3,4 @@
 /docu/*.aux
 docu/*.log
 docu/prijedlog_sem.aux
+src/tuning_results/

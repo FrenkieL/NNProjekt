@@ -106,7 +106,7 @@ Nakon pretraživanja ukupno smo naći 9 relevantnih radova sa tražilica:
 \begin{table}[htbp]
 \caption{detalji pretraživanja}
 \begin{center}
-\begin{tabular}{|p{50pt}|p{110pt}|p{50pt}|}
+\begin{tabular}{|p{50pt}|p{110pt}|p{70pt}|}
 \hline
  & & \textbf{Komentar}\\ \hline
 tražilice & Google, Google Scholar, BASE, CORE, Science.gov, Semantic Scholar, Baidu scholar, RefSeek, CiteSeerX, ScienceOpen, The Lens, arXiv, AMiner, ACM, IEEE Xplore, Science Direct,  Springer Link, Web of Science & Samo smo na tražilici Google našli relevatne radove (njih 5)  \\ \hline
@@ -126,16 +126,94 @@ Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realis
 Nadalje uz ćeliju je dodatno razvijeno GUI sučelje koje ima mogućnost generiranja 25 različitih imena gradova na 6 dostupnih jezike.\\
 Težine jednom naučene mreže se pohranjuju u trajnu memoriju, odnosno u datoteke u za to predviđenom direktoriju: $\mathtt{./saved\_models}$.
 
-\subsection{Arhitektura}
-Teoretski modeli neuronskih mreža u kerasu mogu raditi sa ulaznim vektorima varijabilne dimenzionalnosti. U praksi, rad sa vektorima fiksne duljine poboljšava performanse, osobito vrijeme treniranja. Razlog tomu je to što ulazni vektori fiksne težine omogućavaju stvaranje tenzora fiksnih oblika, a posljedično i stabilne težine.
+\subsection{Arhitektura} \label{subsect:arh}
+Arhitektura „LSTM“ mreže se sastoji od više ćelija koji omogućavaju propagaciju podataka na način da uz svako propagiranje ažuriraju se dugoročna i kratkotrajna memorija. Ideja je da struktura omogućava ćelijama da „pamte“ informacije kroz duže sekvence. Na slikama je prikazana LSTM ćelija kako je izvedena u radnom okviru keras.\\
+Obično se više jedini u sloju povezuje kao na slici \ref{tikz:vise_celija}, kao što je to slučaj kod Dense slojeva u našoj mreži. Međutim, isto ne vrijedi za LSTM jedinice.
+
+\begin{figure}[H]
+\centering
+\subfigure[više jedinica općenito]{
+	\label{tikz:vise_celija}
+	\begin{tikzpicture}[scale=0.4]
+	\draw[draw=black, thin, solid] (-4.00,-1.00) rectangle (4.00,2.00);
+	\draw[draw=black, thin, solid] (-2.50,0.50) ellipse (0.50 and 0.50);
+	\draw[draw=black, thin, solid] (2.50,0.50) ellipse (0.50 and 0.50);
+	\draw[draw=black, fill=black, thin, solid] (-1.00,0.50) circle (0.1);
+	\draw[draw=black, fill=black, thin, solid] (-0.50,0.50) circle (0.1);
+	\draw[draw=black, fill=black, thin, solid] (0.00,0.50) circle (0.1);
+	\draw[draw=black, thin, solid] (-4.00,3.00) rectangle (4.00,6.00);
+	\draw[draw=black, thin, solid] (-2.50,4.50) ellipse (0.50 and 0.50);
+	\draw[draw=black, thin, solid] (2.50,4.50) ellipse (0.50 and 0.50);
+	\draw[draw=black, fill=black, thin, solid] (-1.00,4.50) circle (0.1);
+	\draw[draw=black, fill=black, thin, solid] (-0.50,4.50) circle (0.1);
+	\draw[draw=black, fill=black, thin, solid] (0.00,4.50) circle (0.1);
+	\draw[draw=black, -latex, thin, solid] (-0.50,-2.00) -- (-2.50,0.00);
+	\draw[draw=black, -latex, thin, solid] (-0.50,-2.00) -- (2.50,0.00);
+	\draw[draw=black, -latex, thin, solid] (-2.50,1.00) -- (2.50,4.00);
+	\draw[draw=black, -latex, thin, solid] (2.50,1.00) -- (-2.50,4.00);
+	\draw[draw=black, -latex, thin, solid] (-2.50,1.00) -- (-2.50,4.00);
+	\draw[draw=black, -latex, thin, solid] (2.50,1.00) -- (2.50,4.00);
+	\draw[draw=black, -latex, thin, solid] (-2.50,5.00) -- (-2.50,6.50);
+	\draw[draw=black, -latex, thin, solid] (2.50,5.00) -- (2.50,6.50);
+	\draw[draw=black, fill=white, thin, solid] (1.00,4.50) ellipse (0.50 and -0.50);
+	\draw[draw=black, fill=white, thin, solid] (1.00,0.50) ellipse (0.50 and -0.50);
+	\draw[draw=black, -latex, thin, solid] (2.50,1.00) -- (1.00,4.00);
+	\draw[draw=black, -latex, thin, solid] (-0.50,-2.00) -- (1.00,0.00);
+	\draw[draw=black, -latex, thin, solid] (1.00,1.00) -- (1.00,4.00);
+	\draw[draw=black, -latex, thin, solid] (1.00,1.00) -- (2.50,4.00);
+	\draw[draw=black, -latex, thin, solid] (1.00,1.00) -- (-2.50,4.00);
+	\draw[draw=black, -latex, thin, solid] (-2.50,1.00) -- (1.00,4.00);
+	\draw[draw=black, -latex, thin, solid] (1.00,5.00) -- (1.00,6.50);
+\end{tikzpicture}
+}
+\subfigure[više LSTM jedinica]{
+	\includegraphics[scale=0.4]{./pics/lstm_jedinice.png}
+	\label{subfig:lstm_cell_units}
+}
+\caption{ }
+\end{figure}
+
+Kao što vidimo na slici \ref{subfig:lstm_cell_units}, parametar \texttt{units=} keras klase \texttt{LSTM} upravlja dimenzijama svih vektora osim ulaznog. Keras LSTM sloj se ne sastoji od više povezanih LSTM ćelija, već od jedne LSTM ćelije kojoj je povećana dimenzionalnost izlaznog prostora te vektora koji upravljaju stanjem ćelije.
+
+
+\subsection{Hipeparametri}
+
+\subsubsection{Dimenzija skrivenog stanja}
+U trenutku $t$ sadrži informacije iz koraka ${t-1, ..., 0}$, stoga očekujemo monotono padajuću funkciju gubitka u ovisnosti o $\lvert \mathbf{a} \rvert$.
+
+\subsubsection{Stopa učenja}
+Koristimo ADAM optimizator, koji se temelji na stohastičkom gradijentnom spustu, stoga stopa uravlja numeričkom stabilnosti optimizacije. Očekujemo konveksnu funckiju: prevelike stope učenja dovode do nestabilnosti, a premale se presporo miču prema optimumu. (vidi \ref{subsect:trening})
+
+\subsubsection{Temperatura}
+\begin{figure}[H]
+\begin{equation}
+\sigma_{\tau}(\mathbf{f_i}) = \frac{e^{\mathbf{f}_i/\tau}}{\sum_{j=0}^{\lvert f \rvert} e^{\mathbf{f}_j/\tau} }
+\end{equation}
+\caption{Temperaturni softmax}
+\end{figure}
+
+
+temperaturom parametrizirani softmax čuva poredak vjerojatnosti klasa, ali smanjuje razliku između njih:
+\begin{equation}
+\mathbf{f}_i \geq \mathbf{f}_j \implies \sigma_{\tau}(\mathbf{f}_i) \geq \sigma_{\tau}(\mathbf{f}_j)
+\end{equation}
+
+\begin{equation}
+\mathbf{f}_i - \mathbf{f}_j \geq \sigma_{\tau}(\mathbf{f}_i) - 
+ \sigma_{\tau}(\mathbf{f}_j)
+\end{equation}
+Što za izravnu posljedicu ima jednolikiji izbor konačnih klasa, odnosno "kretivniji" ispis, kada $\tau > 1$, odnosno "predvidljiviji" ispis kada $\tau < 1$.
+
+
 
 \begin{table}[htbp]
 \caption{hiperparametri naše mreže}
 \begin{center}
-\begin{tabular}{|p{120pt}|p{40pt}|p{40pt}|}
+\begin{tabular}{|p{120pt}|p{40pt}|p{60pt}|}
 \hline
 \textbf{Hiperparametar} & \textbf{\textit{Vrijednost}} & \textbf{\textit{komentar}}\\ \hline
-broj jedinica po sloju & 128 & Broj jedinica po sloju određuje, i između ostalog, dimenziju skrivenog stanja ($\lvert \mathbf{a} \rvert$). \\ \hline
+broj jedinica po sloju & 128 & Broj jedinica po sloju određuje, između ostalog, i dimenziju skrivenog stanja ($\lvert \mathbf{a} \rvert$). (vidi \ref{subsect:arh})\\ \hline
+temperatura ($\tau$) &  & Daje mogućnost upravljanja "kreativnošću" generiranje. \\ \hline
 stopa učenja ($\mu$) &  & \\ \hline \hline
 aktivacijska funckija & tanh & zadano \\ \hline
 povratna akt. funkcija & $\sigma_{\tau}$ & zadano \\ \hline
@@ -158,11 +236,10 @@ povratni dropout & 0 & zadano \\ \hline
 \end{table}
 
 
-
 \subsection{Ćelija}
-Ćelija izgledda ovako.
+U teoriji modeli neuronskih mreža u kerasu mogu raditi sa ulaznim vektorima varijabilne dimenzionalnosti. U praksi, rad sa vektorima fiksne duljine poboljšava performanse, osobito vrijeme treniranja. Razlog tomu je to što ulazni vektori fiksne težine omogućavaju stvaranje tenzora fiksnih oblika, a posljedično i stabilne težine.
 
-\begin{figure} \label{pic:cell}
+\begin{figure}[H] \label{pic:cell}
 \begin{tikzpicture}
 	\draw[draw=black, thin, solid] (-2.99,5.49) rectangle (1.01,4.00);
 	\node[black, anchor=south west] at (-1.72,4.49) {LSTM};
@@ -177,7 +254,7 @@ povratni dropout & 0 & zadano \\ \hline
 	\node[black, anchor=south west] at (-1.87,6.47) {softmax};
 	\node[black, anchor=south west] at (-0.99,6.96) {$\mathbf{y}^{(t)}$};
 	\node[black, anchor=south west] at (-1.06,3.25) {$\mathbf{x}^{(t)}$};
-%	\node[black, anchor=south west] at (-1.09,5.92) {$f(\mathbf{x}^{(t)})$};
+	\node[black, anchor=south west] at (-1.09,5.92) {$f(\mathbf{x}^{(t)})$};
 	\draw[draw=black, -latex, thin, solid] (-0.99,6.96) -- (-1.00,7.50);
 	\draw[draw=black, thin, solid] (-3.00,7.50) rectangle (1.06,8.01);
 	\node[black, anchor=south west] at (-2.10,7.54) {uzorkovanje};
@@ -192,7 +269,7 @@ Nadalje slika \ref{tikz:detail} prikazuje unutarnju shemu ćelije.
 
 
 
-\subsection{Treniranje}
+\subsection{Treniranje} \label{subsect:trening}
 BPTT je korišten kao algoritam učenja.
 Kao funkcija gubitka koristi se kategorička unakrsna entropija.
 \begin{equation}
@@ -236,11 +313,7 @@ Grafovi za ostale jezike izgledaju gotovo identično, greška na skupu za testir
 Pri optimiranju hiperparametra iz razmatranja je izuzet $\lvert \mathbf{a} \rvert$, jer se točnost monotono povećava sa rastućom dimenzijom skrivenog stanja, što pak nema nikakve veze sa stopom učenja. Prema tome za funkciju greške uvijek vrijedi $L(\lvert \mathbf{a} \rvert, \mu) = L(\mu)$.\\
 Nadalje, zbog gornjega vrijedi: $\min_{\lvert \mathbf{a} \rvert, \mu} L = \min_{\mu} \{ \min_{\lvert \mathbf{a} \rvert} L \} = \min_{\mu} L(\mu, \max {\lvert \mathbf{a} \rvert})$.
 \\
-Pri optimiranju hiperparametra iz razmatranja je izuzet $\lvert \mathbf{a} \rvert$.
-Koristimo heuristiku kako bi odredili vrijednost tog hiperparamtera (\cite{hyper_choise_1}).
-\begin{equation}
-\lvert \mathbf{a} \rvert = \frac{\lvert \mathcal{D}_{train} \rvert}{\alpha \cdot (N_i + N_o)}
-\end{equation}
+
 
 \subsection{Usporedba rezultata}
 --
@@ -261,16 +334,13 @@ Brand Names for Therapeutic Medicines``. report. Department of Computer Science.
 \bibitem{name_generator} Rahalkar C. (2019, June 29). Name Generator Using Recurrent Neural Networks. Github. https://github.com/chaitanyarahalkar/Name-Generator-RNN
 \bibitem{data_name_generator} Landy C. (2019, September 7). Look No More, The Data driven Baby Name generator. www.connorlandy.com. https://www.connorlandy.com/projects/rnn-name-generator
 \bibitem{city_name_gen} Bosnali C. (2018, September 27). City-Name-Generation-using-LSTM-and-TF. Github. https://github.com/CihanBosnali/City-Name-Generation-using-LSTM-and-TF
-
-
 \end{thebibliography}
-
-
-
+\newpage
+\
 \begin{sidewaysfigure*}
+\label{tikz:detail}
 \resizebox{550pt}{!}{
 \begin{tikzpicture}
-\label{tikz:detail}
 	\draw[draw=black, thin, solid] (-5.03,0.86) rectangle (5.50,6.50);
 	\draw[draw=black, thin, solid] (4.50,4.00) ellipse (0.50 and -0.50);
 	\draw[draw=black, thin, solid] (1.00,4.00) ellipse (0.50 and -0.50);
@@ -341,6 +411,8 @@ Brand Names for Therapeutic Medicines``. report. Department of Computer Science.
 }
 \caption{Unutarnja arhitektura LSTM ćelije}
 \end{sidewaysfigure*}
+
+
 
 
 \end{document}
