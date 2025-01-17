@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from model import load_model_and_tokenizer, generate_name
+from model import load_model_and_tokenizer, generate_name, datasets, train_and_save_models, tune_hyperparameters
 from tkinter import messagebox
 import random
 
@@ -59,9 +59,46 @@ def display_city_names(generated_city_names):
         )
         city_label.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
 
+def open_training_wn():
+    train_wn = ctk.CTkToplevel(root)
+    train_wn.title("Treniranje modela")
+    train_wn.geometry("1200x800")
+
+    train_wn.rowconfigure(1, weight=1)
+    train_wn.columnconfigure(1, weight=1)
+
+    langs = ["CRO"] #temp
+
+    find_model_button = ctk.CTkButton(
+        train_wn,
+        text="Tune hiperparameters",
+        command= lambda: tune_hyperparameters(datasets, langs),
+        width=200,
+        height=40,
+        corner_radius=8,
+        fg_color="#6A9C89",
+        hover_color="#16423C",
+        text_color="#E9EFEC",
+    )
+    find_model_button.grid(row=3, column=0, pady=30, padx=20)
+
+    start_train_button = ctk.CTkButton(
+        train_wn,
+        text="Start training",
+        command= lambda: train_and_save_models(datasets, langs),
+        width=200,
+        height=40,
+        corner_radius=8,
+        fg_color="#6A9C89",
+        hover_color="#16423C",
+        text_color="#E9EFEC",
+    )
+    start_train_button.grid(row=4, column=0, pady=30, padx=20)
+    
+
 root = ctk.CTk()
 root.title("City Names Generator")
-root.geometry("850x570")
+root.geometry("870x650")
 root.configure(fg_color="#E9EFEC")
 
 title_label = ctk.CTkLabel(
@@ -121,6 +158,19 @@ for i in range(5):
    city_list_frame.grid_rowconfigure(
        i, weight=1)
 
+train_button = ctk.CTkButton(
+    root,
+    text="Train models",
+    command=open_training_wn,
+    width=200,
+    height=40,
+    corner_radius=8,
+    fg_color="#6A9C89",
+    hover_color="#16423C",
+    text_color="#E9EFEC",
+)
+train_button.grid(row=4, column=0, pady=30, padx=20)
+
 footer_label = ctk.CTkLabel(
     root,
     text="NNProject",
@@ -128,6 +178,6 @@ footer_label = ctk.CTkLabel(
     text_color="#B0B0B0",
     fg_color="#E9EFEC"
 )
-footer_label.grid(row=4, column=0, pady=10, padx=20, sticky="se")
+footer_label.grid(row=5, column=0, pady=10, padx=20, sticky="se")
 
 root.mainloop()

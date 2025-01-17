@@ -11,7 +11,8 @@
 \usepackage{tikz}
 \usepackage{rotating}
 \usepackage[croatian]{babel}
-
+\usepackage{amsmath}
+\usepackage{subfigure}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -38,7 +39,7 @@
 
 \begin{abstract}
 Cilj projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena hrvatskih naselja. Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
-Željena točnost modela $\eta$ je $\lim_{\tau \to 0} \eta = 0.5$
+Željena točnost modela $\eta = 0.4$.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -120,13 +121,13 @@ traženi pojam & (LSTM OR GRU OR CNN OR RNN OR Neural Network) AND ((~city AND ~
 
 
 \section{Opis implementirane LSTM mreže}
-Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
+Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.\\
+\\
+Nadalje uz ćeliju je dodatno razvijeno GUI sučelje koje ima mogućnost generiranja 25 različitih imena gradova na 6 dostupnih jezike.\\
+Težine jednom naučene mreže se pohranjuju u trajnu memoriju, odnosno u datoteke u za to predviđenom direktoriju: $\mathtt{./saved\_models}$.
 
 \subsection{Arhitektura}
 Teoretski modeli neuronskih mreža u kerasu mogu raditi sa ulaznim vektorima varijabilne dimenzionalnosti. U praksi, rad sa vektorima fiksne duljine poboljšava performanse, osobito vrijeme treniranja. Razlog tomu je to što ulazni vektori fiksne težine omogućavaju stvaranje tenzora fiksnih oblika, a posljedično i stabilne težine.
-
-\subsection{Hiperparametri}
-\label{subsect_hiper}
 
 \begin{table}[htbp]
 \caption{hiperparametri naše mreže}
@@ -134,7 +135,7 @@ Teoretski modeli neuronskih mreža u kerasu mogu raditi sa ulaznim vektorima var
 \begin{tabular}{|p{120pt}|p{40pt}|p{40pt}|}
 \hline
 \textbf{Hiperparametar} & \textbf{\textit{Vrijednost}} & \textbf{\textit{komentar}}\\ \hline
-broj jedinica po sloju & 2 & Ovo je ustvari dimenzija skrivenog stanja ($\lvert \mathbf{a} \rvert$) \\ \hline
+broj jedinica po sloju & 128 & Broj jedinica po sloju određuje, i između ostalog, dimenziju skrivenog stanja ($\lvert \mathbf{a} \rvert$). \\ \hline
 stopa učenja ($\mu$) &  & \\ \hline \hline
 aktivacijska funckija & tanh & zadano \\ \hline
 povratna akt. funkcija & $\sigma_{\tau}$ & zadano \\ \hline
@@ -161,7 +162,7 @@ povratni dropout & 0 & zadano \\ \hline
 \subsection{Ćelija}
 Ćelija izgledda ovako.
 
-\begin{figure}
+\begin{figure} \label{pic:cell}
 \begin{tikzpicture}
 	\draw[draw=black, thin, solid] (-2.99,5.49) rectangle (1.01,4.00);
 	\node[black, anchor=south west] at (-1.72,4.49) {LSTM};
@@ -188,6 +189,83 @@ povratni dropout & 0 & zadano \\ \hline
 \end{figure}
 \ \\
 Nadalje slika \ref{tikz:detail} prikazuje unutarnju shemu ćelije.
+
+
+
+\subsection{Treniranje}
+BPTT je korišten kao algoritam učenja.
+Kao funkcija gubitka koristi se kategorička unakrsna entropija.
+\begin{equation}
+L = - \sum_{t = 0}^{\lvert \Sigma \rvert-1} \mathbf{z}_i^{(t)} \cdot log(\hat{\mathbf{y}}_i^{(t)})
+\end{equation}
+Gdje je $i \in [0, \lvert \Sigma \rvert - 1]$. $\hat{\mathbf{y}}^{(t)}$ je izlaz mreže, odnosno $\hat{\mathbf{y}}_i^{(t)}$ vjerojatnost da je idući znak $i$-ti znak abecede, a $\mathbf{z}^{(t)}$ je očekivani vektor.
+Inačica BPTT koju mi koristimo je u biti propagirani stohastički gradijentni spust.\\
+\\
+Pri treniranju koristimo parametre navedene u tablici \ref{tab:trening}.
+\begin{table}[htbp]
+\caption{parametri procedure za treniranje}
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Parametar} & \textbf{\textit{Vrijednost}}\\ \hline
+f-ja gubitka & kategorička unakrsna entropija \\ \hline
+algoritam optimizacije & ADAM \\ \hline
+metrika kvalitete & točnost \\ \hline
+\end{tabular}
+\label{tab:trening}
+\end{center}
+\end{table}
+
+Pri treniranju koristimo podjelu skupova na skup za treniranje i testiranje (validaciju) u omjeru 4:1.\\
+Uz hiperparametre $\begin{bmatrix} \lvert \mathbf{a} \rvert & \mu\end{bmatrix} = \begin{bmatrix} 128 & 10^{-3}  \end{bmatrix}$ dobivamo slijedeće vrijednosti funkcije gubitka i točnosti po epohama.
+
+\begin{figure}[H]
+\centering
+\subfigure{
+	\includegraphics[scale=0.4]{../saved_models/US_accuracy_plot.png}
+}
+\subfigure{
+	\includegraphics[scale=0.4]{../saved_models/US_loss_plot.png}
+}
+\caption{Američki gradovi}
+\end{figure}
+Grafovi za ostale jezike izgledaju gotovo identično, greška na skupu za testiranje počinje rasti nakon 20-30 epohe. Najveća točnost je uvijek $40\% \pm 5\%$.
+
+\section{Opis eksperimentalnih rezultata} 
+\subsection{optimiranje hiperparametara}
+Pri optimiranju hiperparametra iz razmatranja je izuzet $\lvert \mathbf{a} \rvert$, jer se točnost monotono povećava sa rastućom dimenzijom skrivenog stanja, što pak nema nikakve veze sa stopom učenja. Prema tome za funkciju greške uvijek vrijedi $L(\lvert \mathbf{a} \rvert, \mu) = L(\mu)$.\\
+Nadalje, zbog gornjega vrijedi: $\min_{\lvert \mathbf{a} \rvert, \mu} L = \min_{\mu} \{ \min_{\lvert \mathbf{a} \rvert} L \} = \min_{\mu} L(\mu, \max {\lvert \mathbf{a} \rvert})$.
+\\
+Pri optimiranju hiperparametra iz razmatranja je izuzet $\lvert \mathbf{a} \rvert$.
+Koristimo heuristiku kako bi odredili vrijednost tog hiperparamtera (\cite{hyper_choise_1}).
+\begin{equation}
+\lvert \mathbf{a} \rvert = \frac{\lvert \mathcal{D}_{train} \rvert}{\alpha \cdot (N_i + N_o)}
+\end{equation}
+
+\subsection{Usporedba rezultata}
+--
+
+\section{Zaključak}
+--
+
+
+\begin{thebibliography}{00}
+\bibitem{Fatima} Fatima, N., Imran, A S., Kastrati, Z., Daudpota, S M., Soomro, A (2022) ``A Systematic Literature Review on Text Generation Using Deep Neural Network Models``
+IEEE Access, 10: 53490-53503, https://doi.org/10.1109/ACCESS.2022.3174108
+\bibitem{hyper_choise_1} Eckhardt K. (2018, November 29). Choosing the right Hyperparameters for a simple LSTM using Keras. Towards data science. https://towardsdatascience.com/choosing-the-right-hyperparameters-for-a-simple-lstm-using-keras-f8e9ed76f046
+\bibitem{unreasonable_eff_of_LSTM} Karpathy A. (2015, May 21). The Unreasonable Effectiveness of Recurrent Neural Networks. Andrej Karpathy blog. http://karpathy.github.io/2015/05/21/rnn-effectiveness
+\bibitem{randolph} Randolph Z. (2020.) ``Recursive Neural Network for Generating Novel
+Brand Names for Therapeutic Medicines``. report. Department of Computer Science. Stanford. http://cs230.stanford.edu/projects\_spring\_2020/reports/38912979.pdf
+\bibitem{unreasonable_eff_of_LSTM} Olah C. (2017, August 27). Understanding LSTM Networks. colah's blog. https://colah.github.io/posts/2015-08-Understanding-LSTMs/
+\bibitem{master_LSTM} Dipanshu G. (2017, August 27). Master LSTM Networks With Python: A Guide Using TensorFlow and Keras. Medium. https://dipanshu10.medium.com/implementing-lstm-networks-with-python-a-guide-using-tensorflow-and-keras-915b58f502ce
+\bibitem{name_generator} Rahalkar C. (2019, June 29). Name Generator Using Recurrent Neural Networks. Github. https://github.com/chaitanyarahalkar/Name-Generator-RNN
+\bibitem{data_name_generator} Landy C. (2019, September 7). Look No More, The Data driven Baby Name generator. www.connorlandy.com. https://www.connorlandy.com/projects/rnn-name-generator
+\bibitem{city_name_gen} Bosnali C. (2018, September 27). City-Name-Generation-using-LSTM-and-TF. Github. https://github.com/CihanBosnali/City-Name-Generation-using-LSTM-and-TF
+
+
+\end{thebibliography}
+
+
 
 \begin{sidewaysfigure*}
 \resizebox{550pt}{!}{
@@ -263,59 +341,6 @@ Nadalje slika \ref{tikz:detail} prikazuje unutarnju shemu ćelije.
 }
 \caption{Unutarnja arhitektura LSTM ćelije}
 \end{sidewaysfigure*}
-
-\subsection{Treniranje}
-BPTT je korišten kao algoritam učenja.
-Kao funkcija gubitka koristi se kategorička unakrsna entropija.
-\begin{equation}
-L = - \sum_{t = 0}^{\lvert \Sigma \rvert-1} \mathbf{z}_i^{(t)} \cdot log(\hat{\mathbf{y}}_i^{(t)})
-\end{equation}
-Gdje je $i \in [0, \lvert \Sigma \rvert - 1]$. $\hat{\mathbf{y}}^{(t)}$ je izlaz mreže, odnosno $\hat{\mathbf{y}}_i^{(t)}$ vjerojatnost da je idući znak $i$-ti znak abecede, a $\mathbf{z}^{(t)}$ je očekivani vektor.
-Inačica BPTT koju mi koristimo je u biti propagirani stohastički gradijentni spust.\\
-\\
-Pri treniranju koristimo parametre navedene u tablici \ref{tab:trening}.
-\begin{table}[htbp]
-\caption{parametri procedure za treniranje}
-\begin{center}
-\begin{tabular}{|c|c|}
-\hline
-\textbf{Parametar} & \textbf{\textit{Vrijednost}}\\ \hline
-f-ja gubitka & kategorička unakrsna entropija \\ \hline
-algoritam optimizacije & ADAM \\ \hline
-metrike & točnost \\ \hline
-\end{tabular}
-\label{tab:trening}
-\end{center}
-\end{table}
-
-\section{Opis eksperimentalnih rezultata}
-
-\paragraph{optimiranje hiperparametara}
---
-
-\subsection{Usporedba rezultata}
---
-
-\section{Zaključak}
---
-
-
-\begin{thebibliography}{00}
-\bibitem{Fatima} Fatima, N., Imran, A S., Kastrati, Z., Daudpota, S M., Soomro, A (2022) ``A Systematic Literature Review on Text Generation Using Deep Neural Network Models``
-IEEE Access, 10: 53490-53503, https://doi.org/10.1109/ACCESS.2022.3174108
-\bibitem{hyper_choise_1} Eckhardt K. (2018, November 29). Choosing the right Hyperparameters for a simple LSTM using Keras. Towards data science. https://towardsdatascience.com/choosing-the-right-hyperparameters-for-a-simple-lstm-using-keras-f8e9ed76f046
-\bibitem{unreasonable_eff_of_LSTM} Karpathy A. (2015, May 21). The Unreasonable Effectiveness of Recurrent Neural Networks. Andrej Karpathy blog. http://karpathy.github.io/2015/05/21/rnn-effectiveness
-\bibitem{randolph} Randolph Z. (2020.) ``Recursive Neural Network for Generating Novel
-Brand Names for Therapeutic Medicines``. report. Department of Computer Science. Stanford. http://cs230.stanford.edu/projects\_spring\_2020/reports/38912979.pdf
-\bibitem{unreasonable_eff_of_LSTM} Olah C. (2017, August 27). Understanding LSTM Networks. colah's blog. https://colah.github.io/posts/2015-08-Understanding-LSTMs/
-\bibitem{master_LSTM} Dipanshu G. (2017, August 27). Master LSTM Networks With Python: A Guide Using TensorFlow and Keras. Medium. https://dipanshu10.medium.com/implementing-lstm-networks-with-python-a-guide-using-tensorflow-and-keras-915b58f502ce
-\bibitem{name_generator} Rahalkar C. (2019, June 29). Name Generator Using Recurrent Neural Networks. Github. https://github.com/chaitanyarahalkar/Name-Generator-RNN
-\bibitem{data_name_generator} Landy C. (2019, September 7). Look No More, The Data driven Baby Name generator. www.connorlandy.com. https://www.connorlandy.com/projects/rnn-name-generator
-\bibitem{city_name_gen} Bosnali C. (2018, September 27). City-Name-Generation-using-LSTM-and-TF. Github. https://github.com/CihanBosnali/City-Name-Generation-using-LSTM-and-TF
-
-
-\end{thebibliography}
-
 
 
 \end{document}

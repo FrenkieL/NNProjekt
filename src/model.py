@@ -11,6 +11,7 @@ from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import EarlyStopping
+from kerastuner.tuners import RandomSearch
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
@@ -75,15 +76,84 @@ class NamesDatasetToken:
 
         # Podjela na trening i testni skup
         return split_data(self.X, self.y, test_size=0.2)
+    
 
-def train_and_save_models(datasets):
+def build_lstm_model(hyperparameters):
+    model = Sequential()
+
+    # Tune the number of units in the LSTM layer
+    model.add(LSTM(units=hyperparameters.Int('lstm_units', min_value=32, max_value=512, step=32),
+                   input_shape=(sequence_length, num_features)))
+    
+    # Tune the dropout rate
+    model.add(Dropout(rate=hyperparameters.Float('dropout_rate', min_value=0.1, max_value=0.5, step=0.1)))
+    
+    # Tune the number of Dense layer units
+    model.add(Dense(units=hyperparameters.Int('dense_units', min_value=32, max_value=512, step=32), 
+                    activation='relu'))
+    
+    # Output layer
+    model.add(Dense(1))
+    
+    # Tune the learning rate for the optimizer
+    model.compile(optimizer=tf.keras.optimizers.Adam(
+                    learning_rate=hyperparameters.Float('learning_rate', min_value=1e-4, max_value=1e-2, sampling='log')),
+                  loss='mse')
+    
+    return model
+    
+def tune_hyperparameters(datasets, langs):
     for dataset in datasets:
         lang_code = dataset.linfo.langname
         model_path = f'../saved_models/{lang_code}_model.h5'
         tokenizer_path = f'../saved_models/{lang_code}_tokenizer.pkl'
 
         # Provjera postoje li već spremljeni modeli
-        if os.path.exists(model_path) and os.path.exists(tokenizer_path):
+        if os.path.exists(model_path) and os.path.exists(tokenizer_path) and not lang_code in set(langs):
+            print(f"Model za jezik {lang_code} već postoji, preskačem treniranje.")
+            continue
+
+        print(f"Treniram model za jezik: {lang_code}")
+
+        # Učitavanje podataka
+        X_train, X_test, y_train, y_test = dataset.load_names()
+
+        # Model
+        model = Sequential([
+            Embedding(input_dim=len(dataset.tokenizer.word_index) + 1, output_dim=100, input_length=X_train.shape[1]),
+            LSTM(units=128),
+            Dense(units=len(dataset.tokenizer.word_index) + 1, activation='softmax')
+        ])
+        model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
+
+    tuner = RandomSearch(
+        build_lstm_model,
+        objective='val_loss',
+        max_trials=10,
+        executions_per_trial=1,
+        directory='tuning_results',
+        project_name='lstm_model_tuning'
+    )
+
+    # Set up early stopping to prevent overfitting
+    early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+
+    # Search for the best hyperparameters
+    tuner.search(X_train, epochs=50, validation_data=X_test, callbacks=[early_stopping_callback])
+
+    # Get the best hyperparameters
+    best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
+
+    return best_hyperparameters
+
+def train_and_save_models(datasets, langs):
+    for dataset in datasets:
+        lang_code = dataset.linfo.langname
+        model_path = f'../saved_models/{lang_code}_model.h5'
+        tokenizer_path = f'../saved_models/{lang_code}_tokenizer.pkl'
+
+        # Provjera postoje li već spremljeni modeli
+        if os.path.exists(model_path) and os.path.exists(tokenizer_path) and not lang_code in set(langs):
             print(f"Model za jezik {lang_code} već postoji, preskačem treniranje.")
             continue
 
@@ -102,7 +172,8 @@ def train_and_save_models(datasets):
 
         early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
-        history = model.fit(X_train, y_train, epochs=30, validation_data=(X_test, y_test),
+        # treniranje
+        history = model.fit(X_train, y_train, epochs=45, validation_data=(X_test, y_test),
                             callbacks=[early_stopping], verbose=1)
 
         loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
@@ -214,6 +285,3 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
         print("Prekida se nakon maksimalnog broja iteracija")
 
     return generated_text
-
-train_and_save_models(datasets)
-
