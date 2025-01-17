@@ -78,35 +78,35 @@ class NamesDatasetToken:
         return split_data(self.X, self.y, test_size=0.2)
     
 
-def build_lstm_model(dataset, X_train, hyperparameters):
+def build_lstm_model(dataset, X_train, hyperparameters, embedding_units, lstm_units, lr, temperature):
     model = Sequential()
 
     iterations = 5
     minval, maxval = 32, 512
     step = (maxval - minval)/iterations
     model.add(Embedding(input_dim=len(dataset.tokenizer.word_index) + 1,
-                         output_dim=hyperparameters.Int('embedding_units', min_value=minval, max_value=maxval, step=step), 
+                         output_dim=embedding_units if embedding_units is not None else hyperparameters.Int('embedding_units', min_value=minval, max_value=maxval, step=step), 
                         input_length=X_train.shape[1]))
 
-    model.add(LSTM(units=hyperparameters.Int('lstm_units', min_value=minval, max_value=maxval, step=step)))
+    model.add(LSTM(units= lstm_units if lstm_units is not None else hyperparameters.Int('lstm_units', min_value=minval, max_value=maxval, step=step)))
 
 
     minval, maxval = 0.2, 2
     step = (maxval - minval)/iterations
-    model.add(Lambda(lambda y: y / hyperparameters.Float('temperature', min_value=minval, max_value=maxval, step=step, sampling='linear')))
+    model.add(Lambda(lambda y: y / (temperature if temperature is not None else hyperparameters.Float('temperature', min_value=minval, max_value=maxval, step=step, sampling='linear'))))
     
     model.add(Dense(units=len(dataset.tokenizer.word_index) + 1, 
-                    activation='sigmoid'))
+                    activation='softmax'))
     
     minval, maxval = 1e-4, 1e-2
     step = (maxval - minval)/iterations
     model.compile(optimizer=tf.keras.optimizers.Adam(
-                    learning_rate=hyperparameters.Float('learning_rate', min_value=minval, max_value=maxval, step=step, sampling='linear')),
+                    learning_rate= lr if lr is not None else hyperparameters.Float('learning_rate', min_value=minval, max_value=maxval, step=step, sampling='linear')),
                   loss='categorical_crossentropy')
     
     return model
     
-def tune_hyperparameters(datasets, lang):
+def tune_hyperparameters(datasets, lang, embedding_units=100, lstm_units=128, lr=0.001, temperature=0.01):
     for dataset in datasets:
         lang_code = dataset.linfo.langname
         model_path = f'../saved_models/{lang_code}_model.h5'
@@ -123,7 +123,7 @@ def tune_hyperparameters(datasets, lang):
         X_train, X_test, y_train, y_test = dataset.load_names()
 
         tuner = GridSearch(
-            lambda h: build_lstm_model(dataset, X_train, h),
+            lambda h: build_lstm_model(dataset, X_train, h, embedding_units, lstm_units, lr, temperature=temperature),
             objective='val_loss',
             max_trials=300,
             executions_per_trial=1,
@@ -139,7 +139,7 @@ def tune_hyperparameters(datasets, lang):
     
     return None
 
-def train_and_save_models(datasets, langs):
+def train_and_save_models(datasets, langs, embedding_units=100, lstm_units=128, lr=0.001, temperature=0.01):
     for dataset in datasets:
         lang_code = dataset.linfo.langname
         model_path = f'../saved_models/{lang_code}_model.h5'
@@ -157,13 +157,14 @@ def train_and_save_models(datasets, langs):
 
         # Model
         model = Sequential([
-            Embedding(input_dim=len(dataset.tokenizer.word_index) + 1, output_dim=100, input_length=X_train.shape[1]),
-            LSTM(units=128),
-            Dense(units=len(dataset.tokenizer.word_index) + 1, activation='softmax')
+            Embedding(input_dim=len(dataset.tokenizer.word_index) + 1, output_dim=embedding_units, input_length=X_train.shape[1]),
+            LSTM(units=lstm_units),
         ])
+
+        model.add(Lambda(lambda y: y / temperature))
+        model.add(Dense(units=len(dataset.tokenizer.word_index) + 1, activation='softmax'))
+
         model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
-        print("MODEL:")
-        model.summary()
 
         early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
@@ -275,22 +276,10 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
     return generated_text
 
 
+# tune_hyperparameters(datasets=datasets, lang="US", embedding_units=100, lstm_units=128, temperature=None, lr=0.001)
+tune_hyperparameters(datasets=datasets, lang="US", embedding_units=100, lstm_units=128, lr=0.001, temperature=None)
+
+
 #generate name with some model
 # Model
-cro_dataset = [d for d in datasets if d.linfo.langname == "CRO"][0]
-
-X_train, X_test, y_train, y_test = cro_dataset.load_names()
-
-hyperparams = tune_hyperparameters(datasets, "US")
-print("HYPERS:")
-print(hyperparams)
-
-model = Sequential([
-    Embedding(input_dim=len(cro_dataset.tokenizer.word_index) + 1, output_dim=100, input_length=X_train.shape[1]),
-    LSTM(units=128),
-    Dense(units=len(cro_dataset.tokenizer.word_index) + 1, activation='softmax')
-])
-model.compile(optimizer="Adam", loss="categorical_crossentropy", metrics=['accuracy'])
-
-print("MODEL:")
-model.summary()
+#train_and_save_models(datasets=datasets, langs="US")
