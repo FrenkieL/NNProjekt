@@ -16,6 +16,8 @@
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\DeclareMathOperator*{\argmax}{arg\,max}    
+
 \begin{document}
 
 \title{Generiranje imena naselja pomocu LSTM mreže}
@@ -38,19 +40,19 @@
 \maketitle
 
 \begin{abstract}
-Cilj projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena hrvatskih naselja. Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
+Cilj projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena naselja na različitim jezicima. Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
 Željena točnost modela $\eta = 0.4$.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Naselje, LSTM, rekurzivne mreže, neuronske mreže-
+Naselje, LSTM, rekurzivne mreže, neuronske mreže, generiranje
 \end{IEEEkeywords}
 
 \section{Uvod}
 \label{sect:intro}
-Ishod projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena hrvatskih naselja.\\
-Mreža radi sa vektorima koji predstavljaju slova hrvatske abecede proširene specijalnim znakovima $\Sigma = \{ \text{hrv. abeceda}\} \cup \{\langle start \rangle, "\setminus 0"\}$.\\
-Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert = 30 + 2$.
+Ishod projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena naselja na različitim jezicima.\\
+Mreža radi sa vektorima koji predstavljaju slova neke abecede (ovisno o odabiru jezika) proširene specijalnim znakom npr. $\Sigma = \{ \text{hrv. abeceda}\} \cup \{\langle END \rangle\}$.\\
+Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert = 30 + 1$.
 \begin{equation}
 \mathbf{x}^{(t)}_i=
     \begin{cases}
@@ -61,10 +63,10 @@ Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert 
 Izlaz dobiven na kraju pojedinog vremenskog koraka $t$ je vektor vjerojatnosti pojave pojednog znaka abecende.\\
 \begin{align}
     \hat{\mathbf{y}}^{(t)} &= \begin{bmatrix}
-           p(c_0) \\
-           p(c_1 | c_0) \\
+           p(c_0^{(t)} | c^{(t-1)} \cdots c^{(0)} ) \\
+           p(c_1^{(t)} | c^{(t-1)} \cdots c^{(0)} ) \\
            \vdots \\
-           p(c_{\lvert \Sigma \rvert -1} | \bigcap_{i=0}^{\lvert \Sigma \rvert -2} c_i)
+           p(c_{\lvert \Sigma \rvert}^{(t)} | c^{(t-1)} \cdots c^{(0)} ) \\
          \end{bmatrix}
          \quad \quad \text{Gdje} \quad c \in \Sigma
 \end{align}
@@ -74,16 +76,15 @@ Na temelju tih vjerojatnosti se uzorkuje konačni izlazni vektor $\mathbf{y}^{(t
  \mathbf{y}^{(t)} \sim \hat{\mathbf{y}}^{(t)} = \sigma_{\tau}(f(\mathbf{x}^{(t)} ; \boldsymbol{\theta}))
 \end{equation}
 \ \\
-$f(\mathbf{x} ; \boldsymbol{\theta})$ predstavlja ukupno djelovanje ćelija modela nad njenim ulazom parametrizirano hiperparametrima modela $\boldsymbol{\theta} = \begin{bmatrix} \lvert \mathbf{a} \rvert & \mu & \tau \end{bmatrix}$\\ (opisani u poglavlju \ref{subsect_hiper})
+$f(\mathbf{x} ; \boldsymbol{\theta})$ predstavlja ukupno djelovanje ćelija modela nad njenim ulazom parametrizirano hiperparametrima modela $\boldsymbol{\theta} = \begin{bmatrix} \lvert \mathbf{\hat{x}} \rvert & \lvert \mathbf{a} \rvert & \mu & \tau \end{bmatrix}$ (opisani u poglavlju \ref{subsect:hiper}).
 Temperaturno uzorkovanje je izabrano, jer omogućava eksperimentiranje i generiranje zanimljivih toponima.
 Izlaz mreže je niz znakova $\{\mathbf{y}^{(t)}\} \biggr \rvert_{t=0}^{T-1}$, odnosno ime naselja.
-Željena točnost modela $\eta$ je $\lim_{\tau \to 0} \eta = 0.5$
+Željena točnost modela $\eta$ je \[\argmax_{\tau} \eta = 0.4\]
 
 \section{Pregled literature}
-U ovom poglavlju dajemo kratki pregled postojeće literature na način kako je to učinjeno u \cite{Fatima}. Svrstavanjem radova na temelju kriterija: pristupa dubokom učenju, funkciji pogreške, primjeni, jeziku i skupu podataka.\\
+U ovom poglavlju dajemo kratki pregled postojeće literature na način kako je to učinjeno u \cite{Fatima}. Svrstavanjem radova na temelju kriterija: pristupa dubokom učenju, funkciji pogreške/metrici kvalitete, jeziku i skupu podataka.\\
 Dobivamo taksonomiju na slici \ref{pic:takso}.\\
-U konačnici odabiremo karakteristike našeg rješenja, navedene u tablici \ref{tab:karak}.\\
-Razlog za odabit pojedine karakteristike dajemo u dotičnom poglavlju.
+Razlog za odabir pojedine karakteristike dajemo u dotičnom poglavlju.
 
 
 
@@ -97,7 +98,7 @@ Razlog za odabit pojedine karakteristike dajemo u dotičnom poglavlju.
 Nas samo zanimaju radovi na jezicima spomenutim u cjelini \ref{sect:intro} na razini riječi sa primjenom generiranja jezičnih konstrukta.\\
 U konačnici odabiremo karakteristike našeg rješenja, navedene u tablici \ref{tab:hiper}.\\
 \\
-Nakon pretraživanja ukupno smo naći 9 relevantnih radova sa tražilica:
+Nakon pretraživanja ukupno smo pronašli 9 relevantnih radova sa tražilica:
 \begin{enumerate}
 \item Google (5 radova)
 \item IEEE Xplore (2 rada)
@@ -121,14 +122,14 @@ traženi pojam & (LSTM OR GRU OR CNN OR RNN OR Neural Network) AND ((~city AND ~
 
 
 \section{Opis implementirane LSTM mreže}
-Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.\\
+Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena naselja na različitim jezicima. Ukupno je dostupno generiranje imena na 5 jezika: engleski, francuski, hrvatski, španjolski, njemački. Moguće je generiranje toponima iz 7 različitih država (dodatno, SAD i Kanada). Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.\\
 \\
 Nadalje uz ćeliju je dodatno razvijeno GUI sučelje koje ima mogućnost generiranja 25 različitih imena gradova na 6 dostupnih jezike.\\
 Težine jednom naučene mreže se pohranjuju u trajnu memoriju, odnosno u datoteke u za to predviđenom direktoriju: $\mathtt{./saved\_models}$.
 
 \subsection{Arhitektura} \label{subsect:arh}
 Arhitektura „LSTM“ mreže se sastoji od više ćelija koji omogućavaju propagaciju podataka na način da uz svako propagiranje ažuriraju se dugoročna i kratkotrajna memorija. Ideja je da struktura omogućava ćelijama da „pamte“ informacije kroz duže sekvence. Na slikama je prikazana LSTM ćelija kako je izvedena u radnom okviru keras.\\
-Obično se više jedini u sloju povezuje kao na slici \ref{tikz:vise_celija}, kao što je to slučaj kod Dense slojeva u našoj mreži. Međutim, isto ne vrijedi za LSTM jedinice.
+Obično se više jedinica u sloju povezuje kao na slici \ref{tikz:vise_celija}, kao što je to slučaj kod Dense slojeva u našoj mreži. Međutim, isto ne vrijedi za LSTM jedinice.
 
 \begin{figure}[H]
 \centering
@@ -202,7 +203,7 @@ Kao što vidimo na slici \ref{subfig:lstm_cell_units}, parametar \texttt{units=}
 \end{figure}
 
 
-\subsection{Hipeparametri}
+\subsection{Hipeparametri} \label{subsect:hiper}
 
 \subsubsection{Dimenzija skrivenog stanja}
 U trenutku $t$ sadrži informacije iz koraka ${t-1, ..., 0}$, stoga očekujemo monotono padajuću funkciju gubitka u ovisnosti o $\lvert \mathbf{a} \rvert$.
@@ -238,7 +239,7 @@ temperaturom parametrizirani softmax čuva poredak vjerojatnosti klasa, ali sman
 \begin{tabular}{|p{120pt}|p{40pt}|p{60pt}|}
 \hline
 \textbf{Hiperparametar} & \textbf{\textit{Vrijednost}} & \textbf{\textit{komentar}}\\ \hline
-broj jedinica po sloju & 128 & Broj jedinica po sloju određuje, između ostalog, i dimenziju skrivenog stanja ($\lvert \mathbf{a} \rvert$). (vidi \ref{subsect:arh})\\ \hline
+%broj jedinica po sloju &  & Broj jedinica po sloju određuje, između ostalog, i dimenziju skrivenog stanja ($\lvert \mathbf{a} \rvert$). (vidi \ref{subsect:arh})\\ \hline
 temperatura ($\tau$) &  & Daje mogućnost upravljanja "kreativnošću" generiranje. \\ \hline
 stopa učenja ($\mu$) &  & \\ \hline \hline
 aktivacijska funckija & tanh & zadano \\ \hline
@@ -276,7 +277,7 @@ ulazni vektor $\mathbf{x}$ & \\ \hline
 izlazni vektor $\mathbf{y}$ & \\ \hline
 kratkoročna memorija $\mathbf{a}$ & Kratkoročna memorija ili skriveno stanje, povezano težinskim vezama sa drugim komponentama, može se modificirati. \\ \hline
 dugoročna memorija $\mathbf{c}$ & Iako se dugoročna memorija može modificirati množenjem, a zatim kasnije zbrajanjem, ne postoje težine i bias koji mogu izravno modificirati memoriju. Nedostatak težina omogućuje dugoročnim sjećanjima da teku kroz niz odmotanih jedinica bez nestanka ili beskonačnog gradijenta. \\ \hline
-Memorijski sklop & Specifičnost je da se kombiniraju ulaz i kratkoročna memorija pomnoženi sa prikladnim težinama te na kraju se dodaje bias. Ta funkcija prolazi kroz sigmoidnu aktivacijsku funkciju koja na kraju se množi sa dugoročnom memorijom. Ako je $\sigma( [\mathbf{x}^{(t)}, \mathbf{a}^{(t)}] \cdot W_f + b_f) \approx 1 $ pamtimo jako puno te $\mathbf{c}^(t)$ ostaje skoro nepromijenjen. U suprotnom ako je gornji izraz $\approx 0$ dolazi do velike numeričke promjene (poništavanja). \\ \hline
+Memorijski sklop & Specifičnost je da se kombiniraju ulaz i kratkoročna memorija pomnoženi sa prikladnim težinama te na kraju se dodaje bias. Ta funkcija prolazi kroz sigmoidnu aktivacijsku funkciju koja na kraju se množi sa dugoročnom memorijom. Ako je $\sigma( [\mathbf{x}^{(t)}, \mathbf{a}^{(t)}] \cdot W_f + b_f) \approx 1 $ pamtimo puno te $\mathbf{c}^{(t)}$ ostaje skoro nepromijenjen. U suprotnom ako je gornji izraz $\approx 0$ dolazi do velike numeričke promjene (poništavanja). \\ \hline
 Ulazni sklop &  Vrijednost $\sigma( [\mathbf{x}^{(t)}, \mathbf{a}^{(t)}] \cdot W_i + b_i)$ stvara potencijalno dugoročno sjećanje, a vrijednost $\tanh( [\mathbf{x}^{(t)}, \mathbf{a}^{(t)}] \cdot W_m + b_m)$ određuje koji postotak tog sjećanja će se zapamtiti. \\ \hline
 Izlazni sklop & Kombiniramo novostvorenu dugoročnu memoriju $\tanh(\mathbf{c}^{(t+1)})$ sa rezutatom sigmoide koji odlučuje u kojoj mjeri će se zapamtiti novostvoreno sjećanje. Na izlazu dobivamo novo kratoročno sjećanje, odnosno izlazni vektor $f(\mathbf{x}^{(t)})$ (slično kao ulazni sklop) \\ \hline
 \end{tabular}
@@ -313,7 +314,7 @@ metrika kvalitete & točnost \\ \hline
 \end{table}
 
 Pri treniranju koristimo podjelu skupova na skup za treniranje i testiranje (validaciju) u omjeru 4:1.\\
-Uz hiperparametre $\begin{bmatrix} \lvert \mathbf{a} \rvert & \mu\end{bmatrix} = \begin{bmatrix} 128 & 10^{-3}  \end{bmatrix}$ dobivamo slijedeće vrijednosti funkcije gubitka i točnosti po epohama.
+Uz hiperparametre $\begin{bmatrix} \lvert \mathbf{a} \rvert & \mu & \lvert \mathbf{\hat{x}} \rvert & \tau \end{bmatrix} = \begin{bmatrix} 128 & 10^{-3} & 100 & 0.01  \end{bmatrix}$ dobivamo slijedeće vrijednosti funkcije gubitka i točnosti po epohama.
 
 \begin{figure}[H]
 \centering
@@ -329,10 +330,6 @@ Grafovi za ostale jezike izgledaju gotovo identično, greška na skupu za testir
 
 \section{Opis eksperimentalnih rezultata} 
 \subsection{optimiranje hiperparametara}
-Pri optimiranju hiperparametra iz razmatranja je izuzet $\lvert \mathbf{a} \rvert$, jer se točnost monotono povećava sa rastućom dimenzijom skrivenog stanja, što pak nema nikakve veze sa stopom učenja. Prema tome za funkciju greške uvijek vrijedi $L(\lvert \mathbf{a} \rvert, \mu) = L(\mu)$.\\
-Nadalje, zbog gornjega vrijedi: $\min_{\lvert \mathbf{a} \rvert, \mu} L = \min_{\mu} \{ \min_{\lvert \mathbf{a} \rvert} L \} = \min_{\mu} L(\mu, \max {\lvert \mathbf{a} \rvert})$.
-\\
-\\
 Optimiranje je izvršeno strojno, pomoću razreda \texttt{GridSearch}.
 Pokrenut je automatski postupak optimizacije nad 4 hiperparametra naše mreže, te su dobivene vrijednosti $\mathbf{\boldsymbol{\theta}_m} = \begin{bmatrix} \lvert \mathbf{x} \rvert_m & \lvert \mathbf{a} \rvert_m & \mu_m & \tau_m \end{bmatrix} = \begin{bmatrix} 1 & ... \end{bmatrix}$.
 Te vrijednosti optimuma $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test}] = 2.227$.
@@ -340,17 +337,18 @@ Te vrijednosti optimuma $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test
 \subsection{Usporedba rezultata}
 U tablici dajemo kratku usporedbu sa rezultatima u literaturi.
 \begin{table}[htbp]
-\caption{parametri procedure za treniranje}
+\caption{ }
 \begin{center}
 \begin{tabular}{|c|c|c|c|}
 \hline
- & \textbf{\cite{randolph}} & \textbf{Naša mreža} & \\ \hline
-\textbf{točnost} & & & \\ \hline
+ & \textbf{\cite{randolph}} & \textbf{\cite{name_generator}} & \textbf{Naša mreža}  \\ \hline
+\textbf{točnost} & $40\%$ & $40\%^{\mathrm{a}}$ &  \\ \hline
+\multicolumn{4}{l}{$^{\mathrm{a}}$at optimal $\tau=0.5$.}
 \end{tabular}
-\label{tab:trening}
+\label{tab:result}
 \end{center}
 \end{table}
-
+%Mrežu smo pokrenuli nad uzorkom od $(N= 10, n=25)$ pokretanja, odnosno imena te dobili rezultat i interval povjerenja $(\alpha= 0.95, \nu= 9)$ u gornjoj tablici.
 
 Vrijedi napomenuti da, zbog svojstvenosti problema, točnost na ispitnom skupu predstavlja donju granicu stvarne točnosti modela. Naime moguće je da:
 \begin{enumerate}
@@ -358,7 +356,7 @@ Vrijedi napomenuti da, zbog svojstvenosti problema, točnost na ispitnom skupu p
 \item U skupu za ipistivanje postoje realistični, ali nepostojeći gradovi (cilj zadatka)
 \end{enumerate}
 Budući da $\lvert \mathcal{D} \rvert \approx 600$, prva točka je vrlo izgledna. Stoga $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test}]$ podcjenuje mogućnost generalizacije našeg modela.\\
-Dapače u skupu američkih gradova $\%$ skupa $\mathcal{D}_{test}$ je takvo.
+Dapače u skupu američkih gradova $10\%$ skupa $\mathcal{D}_{test}$ je takvo.
 
 \section{Zaključak}
 --
