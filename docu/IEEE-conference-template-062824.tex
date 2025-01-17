@@ -81,29 +81,49 @@ Izlaz mreže je niz znakova $\{\mathbf{y}^{(t)}\} \biggr \rvert_{t=0}^{T-1}$, od
 \section{Pregled literature}
 U ovom poglavlju dajemo kratki pregled postojeće literature na način kako je to učinjeno u \cite{Fatima}. Svrstavanjem radova na temelju kriterija: pristupa dubokom učenju, funkciji pogreške, primjeni, jeziku i skupu podataka.\\
 Dobivamo taksonomiju na slici \ref{pic:takso}.\\
-Nas samo zanimaju radovi na jezicima spomenutim u cjelini \ref{sect:intro} na razini riječi.\\
 U konačnici odabiremo karakteristike našeg rješenja, navedene u tablici \ref{tab:karak}.\\
+Razlog za odabit pojedine karakteristike dajemo u dotičnom poglavlju.
+
 
 
 \begin{figure}[H]
 \centering
-\includegraphics[angle=90, scale=0.3]{./pics/taksonomija.png}\\
+\includegraphics[angle=90, scale=0.3]{./pics/taksonomija3.png}\\
 \caption{taksonomija rješenja za generiranje teksta}
 \label{pic:takso}
 \end{figure}
 
 Nas samo zanimaju radovi na jezicima spomenutim u cjelini \ref{sect:intro} na razini riječi sa primjenom generiranja jezičnih konstrukta.\\
 U konačnici odabiremo karakteristike našeg rješenja, navedene u tablici \ref{tab:hiper}.\\
+\\
+Nakon pretraživanja ukupno smo naći 9 relevantnih radova sa tražilica:
+\begin{enumerate}
+\item Google (5 radova)
+\item IEEE Xplore (2 rada)
+\item pretraživanje literature (2 rada)
+\end{enumerate}
+\begin{table}[htbp]
+\caption{detalji pretraživanja}
+\begin{center}
+\begin{tabular}{|p{50pt}|p{110pt}|p{50pt}|}
+\hline
+ & & \textbf{Komentar}\\ \hline
+tražilice & Google, Google Scholar, BASE, CORE, Science.gov, Semantic Scholar, Baidu scholar, RefSeek, CiteSeerX, ScienceOpen, The Lens, arXiv, AMiner, ACM, IEEE Xplore, Science Direct,  Springer Link, Web of Science & Samo smo na tražilici Google našli relevatne radove (njih 5)  \\ \hline
+traženi pojam & (LSTM OR GRU OR CNN OR RNN OR Neural Network) AND ((~city AND ~generator AND ~name) OR (~generator AND ~name)) & Napisan sintaksom i operatorima koje koristi Google, ali na ostalim tražilicama je korišten prilagođeni izraz.\\ \hline
+\end{tabular}
+\label{tab:trening}
+\end{center}
+\end{table}
+
+
 
 
 
 \section{Opis implementirane LSTM mreže}
 Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
-LSTM ćelija i mreža je implementirana u radnom okviru pyTorch.\\
-Dizajn mreže i podešavanje hiperparametara se odvija paralelno sa implementacijom mreže u radnom okviru Keras.
 
 \subsection{Arhitektura}
---
+Teoretski modeli neuronskih mreža u kerasu mogu raditi sa ulaznim vektorima varijabilne dimenzionalnosti. U praksi, rad sa vektorima fiksne duljine poboljšava performanse, osobito vrijeme treniranja. Razlog tomu je to što ulazni vektori fiksne težine omogućavaju stvaranje tenzora fiksnih oblika, a posljedično i stabilne težine.
 
 \subsection{Hiperparametri}
 \label{subsect_hiper}
@@ -111,14 +131,11 @@ Dizajn mreže i podešavanje hiperparametara se odvija paralelno sa implementaci
 \begin{table}[htbp]
 \caption{hiperparametri naše mreže}
 \begin{center}
-\begin{tabular}{|c|c|c|}
+\begin{tabular}{|p{120pt}|p{40pt}|p{40pt}|}
 \hline
 \textbf{Hiperparametar} & \textbf{\textit{Vrijednost}} & \textbf{\textit{komentar}}\\ \hline
-broj jedinica po sloju & 2 & \\ \hline
-stopa učenja ($\mu$) &  & \\ \hline
-temperatura ($\tau$) &  & \\ \hline
-dimenzija skrivenog stanja ($\lvert \mathbf{a} \rvert$) &  & \\ \hline
-broj epoha & 100 & \\ \hline \hline
+broj jedinica po sloju & 2 & Ovo je ustvari dimenzija skrivenog stanja ($\lvert \mathbf{a} \rvert$) \\ \hline
+stopa učenja ($\mu$) &  & \\ \hline \hline
 aktivacijska funckija & tanh & zadano \\ \hline
 povratna akt. funkcija & $\sigma_{\tau}$ & zadano \\ \hline
 bias & da & zadano \\ \hline
@@ -249,11 +266,12 @@ Nadalje slika \ref{tikz:detail} prikazuje unutarnju shemu ćelije.
 
 \subsection{Treniranje}
 BPTT je korišten kao algoritam učenja.
-Kao funkcija gubitka koristi se unakrsna entropija.
+Kao funkcija gubitka koristi se kategorička unakrsna entropija.
 \begin{equation}
-L_i = - \sum_{t = 0}^{T-1} \mathbf{x}_i^{(t)} \cdot log(\hat{\mathbf{y}}_i^{(t)})
+L = - \sum_{t = 0}^{\lvert \Sigma \rvert-1} \mathbf{z}_i^{(t)} \cdot log(\hat{\mathbf{y}}_i^{(t)})
 \end{equation}
-inačica BPTT koju mi koristimo je u biti propagirani stohastički gradijentni spust.\\
+Gdje je $i \in [0, \lvert \Sigma \rvert - 1]$. $\hat{\mathbf{y}}^{(t)}$ je izlaz mreže, odnosno $\hat{\mathbf{y}}_i^{(t)}$ vjerojatnost da je idući znak $i$-ti znak abecede, a $\mathbf{z}^{(t)}$ je očekivani vektor.
+Inačica BPTT koju mi koristimo je u biti propagirani stohastički gradijentni spust.\\
 \\
 Pri treniranju koristimo parametre navedene u tablici \ref{tab:trening}.
 \begin{table}[htbp]
@@ -270,26 +288,10 @@ metrike & točnost \\ \hline
 \end{center}
 \end{table}
 
-\section{Opis eksperimentalnih rezultata}\label{FAT}
+\section{Opis eksperimentalnih rezultata}
+
 \paragraph{optimiranje hiperparametara}
 --
-
-\begin{table}[htbp]
-\caption{Table Type Styles}
-\begin{center}
-\begin{tabular}{|c|c|c|c|}
-\hline
-\textbf{Table}&\multicolumn{3}{|c|}{\textbf{Table Column Head}} \\
-\cline{2-4} 
-\textbf{Head} & \textbf{\textit{Table column subhead}}& \textbf{\textit{Subhead}}& \textbf{\textit{Subhead}} \\
-\hline
-copy& More table copy$^{\mathrm{a}}$& &  \\
-\hline
-\multicolumn{4}{l}{$^{\mathrm{a}}$Sample of a Table footnote.}
-\end{tabular}
-\label{tab1}
-\end{center}
-\end{table}
 
 \subsection{Usporedba rezultata}
 --
@@ -301,6 +303,17 @@ copy& More table copy$^{\mathrm{a}}$& &  \\
 \begin{thebibliography}{00}
 \bibitem{Fatima} Fatima, N., Imran, A S., Kastrati, Z., Daudpota, S M., Soomro, A (2022) ``A Systematic Literature Review on Text Generation Using Deep Neural Network Models``
 IEEE Access, 10: 53490-53503, https://doi.org/10.1109/ACCESS.2022.3174108
+\bibitem{hyper_choise_1} Eckhardt K. (2018, November 29). Choosing the right Hyperparameters for a simple LSTM using Keras. Towards data science. https://towardsdatascience.com/choosing-the-right-hyperparameters-for-a-simple-lstm-using-keras-f8e9ed76f046
+\bibitem{unreasonable_eff_of_LSTM} Karpathy A. (2015, May 21). The Unreasonable Effectiveness of Recurrent Neural Networks. Andrej Karpathy blog. http://karpathy.github.io/2015/05/21/rnn-effectiveness
+\bibitem{randolph} Randolph Z. (2020.) ``Recursive Neural Network for Generating Novel
+Brand Names for Therapeutic Medicines``. report. Department of Computer Science. Stanford. http://cs230.stanford.edu/projects\_spring\_2020/reports/38912979.pdf
+\bibitem{unreasonable_eff_of_LSTM} Olah C. (2017, August 27). Understanding LSTM Networks. colah's blog. https://colah.github.io/posts/2015-08-Understanding-LSTMs/
+\bibitem{master_LSTM} Dipanshu G. (2017, August 27). Master LSTM Networks With Python: A Guide Using TensorFlow and Keras. Medium. https://dipanshu10.medium.com/implementing-lstm-networks-with-python-a-guide-using-tensorflow-and-keras-915b58f502ce
+\bibitem{name_generator} Rahalkar C. (2019, June 29). Name Generator Using Recurrent Neural Networks. Github. https://github.com/chaitanyarahalkar/Name-Generator-RNN
+\bibitem{data_name_generator} Landy C. (2019, September 7). Look No More, The Data driven Baby Name generator. www.connorlandy.com. https://www.connorlandy.com/projects/rnn-name-generator
+\bibitem{city_name_gen} Bosnali C. (2018, September 27). City-Name-Generation-using-LSTM-and-TF. Github. https://github.com/CihanBosnali/City-Name-Generation-using-LSTM-and-TF
+
+
 \end{thebibliography}
 
 
