@@ -40,7 +40,7 @@
 \maketitle
 
 \begin{abstract}
-Cilj projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena naselja na različitim jezicima. Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena hrvatskih naselja. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
+Cilj projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena naselja na različitim jezicima. Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.
 Željena točnost modela $\eta = 0.4$.
 \end{abstract}
 
@@ -53,6 +53,7 @@ Naselje, LSTM, rekurzivne mreže, neuronske mreže, generiranje
 Ishod projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena naselja na različitim jezicima.\\
 Mreža radi sa vektorima koji predstavljaju slova neke abecede (ovisno o odabiru jezika) proširene specijalnim znakom npr. $\Sigma = \{ \text{hrv. abeceda}\} \cup \{ \text{spec. znakovi}\} \cup \{\langle END \rangle\}$.\\
 Ulaz mreže je one-hot vektor $\mathbf{\hat{x}}^{(t)}$ dimezije $\lvert \Sigma \rvert = 30 + 0 + 1$.
+Ulaz mreže je ustvari samo približno one-hot (vidi \ref{subsect:arh})
 \begin{equation}
 \mathbf{x}^{(t)}_i=
     \begin{cases}
@@ -257,7 +258,7 @@ U teoriji modeli neuronskih mreža u Kerasu mogu raditi sa ulaznim vektorima var
 \subsection{Hipeparametri} \label{subsect:hiper}
 
 \subsubsection{Dimenzija ulaznog vektora}
-Dimenzija izlaznog vektora embedding sloja. Očekujemo $ \lvert \hat{\mathbf{x}} \rvert =  \lvert \Sigma \rvert$
+Dimenzija izlaznog vektora embedding sloja. Očekujemo $ \lvert \hat{\mathbf{x}} \rvert =  \lvert \Sigma \rvert$. Izlazni vektor nije u stvari one-hot, već kako se mreža trenira tako se tablica embedding layera prilagođava ta izazla vrijednost zadnjeg ascii znaka u tenzoru $\mathbf{x}^{(t)}$ odgovara one-hot vektoru tog slova.
 
 \subsubsection{Dimenzija skrivenog stanja}
 U trenutku $t$ sadrži informacije iz koraka $\{t-1, ..., 0\}$, stoga očekujemo monotono padajuću funkciju gubitka u ovisnosti o $\lvert \mathbf{a} \rvert$.
