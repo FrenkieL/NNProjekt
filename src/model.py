@@ -13,6 +13,7 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+from gui import temp
 
 
 def split_data(X, y, test_size=0.2):
@@ -94,7 +95,7 @@ def train_and_save_models(datasets):
 
         # Model
         model = Sequential([
-            Embedding(input_dim=len(dataset.tokenizer.word_index) + 1, output_dim=100, input_length=X_train.shape[1]),
+            Embedding(input_dim=len(dataset.tokenizer.word_index) + 1, output_dim=32, input_length=X_train.shape[1]),
             LSTM(units=128),
             Dense(units=len(dataset.tokenizer.word_index) + 1, activation='softmax')
         ])

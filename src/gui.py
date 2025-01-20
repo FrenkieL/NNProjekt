@@ -12,6 +12,9 @@ import random
 ## napisan kod!
 ##
 
+temp = 0
+
+
 
 # sa ovom funkcijom dobivamo odabranu drzavu iz dropdowna
 def get_chosen_country_index():
@@ -58,6 +61,10 @@ def display_city_names(generated_city_names):
             height=30
         )
         city_label.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+
+def sliding(temp):
+    my_label.configure(text="temperatura: " + str(round(temp, 4)))
+    temp = round(temp, 4)
 
 root = ctk.CTk()
 root.title("City Names Generator")
@@ -107,8 +114,15 @@ confirm_button = ctk.CTkButton(
 )
 confirm_button.grid(row=2, column=0, pady=30, padx=20)
 
+my_slider = ctk.CTkSlider(root, from_=0, to=2, command=sliding)
+my_slider.grid(row=3, column=0)
+my_slider.set(0)
+
+my_label = ctk.CTkLabel(root, text="temperatura: " + str(my_slider.get()), font=ctk.CTkFont(family="Georgia", size=14),)
+my_label.grid(row=4, column=0)
+
 city_list_frame = ctk.CTkFrame(root, fg_color="#E9EFEC")
-city_list_frame.grid(row=3, column=0, pady=20, padx=20, sticky="nsew")
+city_list_frame.grid(row=5, column=0, pady=20, padx=20, sticky="nsew")
 
 for i in range(4):
    root.grid_rowconfigure(i, weight=0)
@@ -128,6 +142,6 @@ footer_label = ctk.CTkLabel(
     text_color="#B0B0B0",
     fg_color="#E9EFEC"
 )
-footer_label.grid(row=4, column=0, pady=10, padx=20, sticky="se")
+footer_label.grid(row=6, column=0, pady=10, padx=20, sticky="se")
 
 root.mainloop()
