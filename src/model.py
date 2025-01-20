@@ -174,7 +174,6 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
     max_iterations = 100 
     
     while ind < max_iterations:
-        print(f"Alo {ind}, Seed text: '{seed_text}'")
         
         # Pretvaranje teksta u sekvencu brojeva
         sequence = tokenizer.texts_to_sequences([seed_text])[0]
