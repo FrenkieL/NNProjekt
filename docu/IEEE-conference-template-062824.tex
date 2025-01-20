@@ -178,7 +178,11 @@ Obično se više jedinica u sloju povezuje kao na slici \ref{tikz:vise_celija}, 
 
 Kao što vidimo na slici \ref{subfig:lstm_cell_units}, parametar \texttt{units=} keras klase \texttt{LSTM} upravlja dimenzijama svih vektora osim ulaznog. Keras LSTM sloj se ne sastoji od više povezanih LSTM ćelija, već od jedne LSTM ćelije kojoj je povećana dimenzionalnost izlaznog prostora te vektora koji upravljaju stanjem ćelije.
 \ \\
-U cjelini \ref{sect:intro} je opisan konceptualni izgled mreže: njena najjednostavnija varijanta (slika \ref{subfig:concept_cell}). Iz praktičnih razloga, implementacija izgleda nešto drugačije (slika \ref{subfig:real_cell}).
+U cjelini \ref{sect:intro} je opisan konceptualni izgled mreže: njena najjednostavnija varijanta (slika \ref{subfig:concept_cell}). Iz praktičnih razloga, implementacija izgleda nešto drugačije (slika \ref{subfig:real_cell}).\\
+\\
+Također, modeli u Kerasu ne rade sa vektorima već sa tenzorima, te modelu ne dodajemo vektor koji predstavlja slovo, već 2D tenzor koji predstavljaju niz znakova.
+U teoriji modeli neuronskih mreža u Kerasu mogu raditi sa ulaznim vektorima varijabilne dimenzionalnosti. U praksi, rad sa vektorima fiksne duljine poboljšava performanse, osobito vrijeme treniranja. Razlog tomu je to što ulazni vektori fiksne težine omogućavaju stvaranje tenzora fiksnih oblika, a posljedično i stabilne težine.\\
+
 
 \begin{figure}[H]
 \centering
@@ -289,10 +293,10 @@ temperaturom parametrizirani softmax čuva poredak vjerojatnosti klasa, ali sman
 \hline
 \textbf{Hiperparametar} & \textbf{\textit{Vrijednost}} & \textbf{\textit{komentar}}\\ \hline
 %broj jedinica po sloju &  & Broj jedinica po sloju određuje, između ostalog, i dimenziju skrivenog stanja ($\lvert \mathbf{a} \rvert$). (vidi \ref{subsect:arh})\\ \hline
-temperatura ($\tau$) &  & Daje mogućnost upravljanja "kreativnošću" generiranje. \\ \hline
-dimenzija izlaznog prostora embedding sloja ($\lvert \mathbf{x} \rvert$) &  & \\ \hline
-dimenzija skrivenog stanja ($\lvert \mathbf{a} \rvert$) &  & \\   \hline
-stopa učenja ($\mu$) &  & \\ \hline \hline
+temperatura ($\tau$) & 0.00782 & Daje mogućnost upravljanja "kreativnošću" generiranje. \\ \hline
+dimenzija izlaznog prostora embedding sloja ($\lvert \mathbf{x} \rvert$) & 32 & \\ \hline
+dimenzija skrivenog stanja ($\lvert \mathbf{a} \rvert$) & 76 & \\   \hline
+stopa učenja ($\mu$) & 0.007572 & \\ \hline \hline
 aktivacijska funckija & $\tanh$ & zadano \\ \hline
 povratna akt. funkcija & $\sigma$ & zadano \\ \hline
 bias & da & zadano \\ \hline
@@ -336,8 +340,6 @@ Izlazni sklop & Kombiniramo novostvorenu dugoročnu memoriju $\tanh(\mathbf{c}^{
 \end{center}
 \end{table}
 
-U teoriji modeli neuronskih mreža u kerasu mogu raditi sa ulaznim vektorima varijabilne dimenzionalnosti. U praksi, rad sa vektorima fiksne duljine poboljšava performanse, osobito vrijeme treniranja. Razlog tomu je to što ulazni vektori fiksne težine omogućavaju stvaranje tenzora fiksnih oblika, a posljedično i stabilne težine.\\
-
 
 
 \subsection{Treniranje} \label{subsect:trening}
@@ -365,7 +367,7 @@ metrika kvalitete & točnost \\ \hline
 \end{table}
 
 Pri treniranju koristimo podjelu skupova na skup za treniranje i testiranje (validaciju) u omjeru 4:1.\\
-Uz hiperparametre $\begin{bmatrix} \lvert \mathbf{a} \rvert & \mu & \lvert \mathbf{\hat{x}} \rvert & \tau \end{bmatrix} = \begin{bmatrix} 128 & 10^{-3} & 100 & 0.004885  \end{bmatrix}$ dobivamo slijedeće vrijednosti funkcije gubitka i točnosti po epohama.\\
+Uz hiperparametre $\begin{bmatrix} \lvert \mathbf{a} \rvert & \mu & \lvert \mathbf{\hat{x}} \rvert & \tau \end{bmatrix} = \begin{bmatrix} 32 & 76 & 0.007525 & 0.00728 \end{bmatrix}$ dobivamo slijedeće vrijednosti funkcije gubitka i točnosti po epohama.\\
 \\
 Zbog ograničenja sa skupovima podataka te kako bi se omogućila usporedba veličina skupa za testiranje svih jezika je ograničena na $\lvert \mathcal{D}_{test, L} \rvert = \min_{L} \lvert \mathcal{D}_{test, L} \rvert = \lvert \mathcal{D}_{test, GER} \rvert \approx 600$.
 
@@ -384,9 +386,9 @@ Grafovi za ostale jezike izgledaju gotovo identično, greška na skupu za testir
 
 \section{Opis eksperimentalnih rezultata} 
 \subsection{optimiranje hiperparametara}
-Optimiranje je izvršeno strojno, pomoću razreda \texttt{GridSearch}.
-Pokrenut je automatski postupak optimizacije nad 4 hiperparametra naše mreže, te su dobivene vrijednosti $\mathbf{\boldsymbol{\theta}_m} = \begin{bmatrix} \lvert \mathbf{x} \rvert_m & \lvert \mathbf{a} \rvert_m & \mu_m & \tau_m \end{bmatrix} = \begin{bmatrix} 32 & 224 & 0.00406 & 0.00802 \end{bmatrix}$.
-Vrijednosti optimuma $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test}] = 2.229$.\\
+Optimiranje je izvršeno strojno, pomoću razreda \texttt{RandomSearch}.
+Pokrenut je automatski postupak optimizacije nad 4 hiperparametra naše mreže, te su dobivene vrijednosti $\mathbf{\boldsymbol{\theta}_m} = \begin{bmatrix} \lvert \mathbf{x} \rvert_m & \lvert \mathbf{a} \rvert_m & \mu_m & \tau_m \end{bmatrix} = \begin{bmatrix} 32 & 76 & 0.007525 & 0.00728 \end{bmatrix}$.
+Vrijednosti optimuma $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test}] = 2.224$.\\
 \\
 Vidimo da su naša predviđanja iz cjeline \ref{subsect:hiper} bila većinom točna, sa iznimkom onog za skriveno stanje $\lvert \mathbf{a} \rvert$: nije riječ o monotono padajućoj funkciji pogreške u ovisnosti o tom hiperparametru, već o konveksnoj. Razlog tomu je moguće to što je riječ o kratkim nizovima znakova za koje postoji ograničena količina informacija koja se ima za zapamtiti između vremenskih koraka.
 
@@ -400,7 +402,7 @@ Kao i u prethodnom cjelinama, korišten je skup podataka Američkih gradova (sku
 \hline
  & \textbf{\cite{randolph}} & \textbf{\cite{name_generator}} & \textbf{Naša mreža}  \\ \hline
 \textbf{točnost} & $40\%$ & $40\%^{\mathrm{a}}$ &  \\ \hline
-\multicolumn{4}{l}{$^{\mathrm{a}}$at optimal $\tau=0.5$.}
+\multicolumn{4}{l}{$^{\mathrm{a}}$na optimalnih $\tau=0.5$.}
 \end{tabular}
 \label{tab:result}
 \end{center}

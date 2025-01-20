@@ -293,7 +293,7 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
 
 
 #tune_hyperparameters(datasets=datasets, lang="US", embedding_units=32, lstm_units=224, lr=0.00406, temperature=0.00802, random_search=False)
-tune_hyperparameters(datasets=datasets, lang="US", embedding_units=None, lstm_units=None, lr=None, temperature=None, random_search=True)
+#tune_hyperparameters(datasets=datasets, lang="US", embedding_units=None, lstm_units=None, lr=None, temperature=None, random_search=True)
 
 
 #generate name with some model
