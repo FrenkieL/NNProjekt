@@ -4,3 +4,12 @@
 docu/*.log
 docu/prijedlog_sem.aux
 src/tuning_results/
+src/__pycache__/model.cpython-312.pyc
+src/tuning_results_rand/
+src/tuning_results_rand/lstm_model_tuning_rand/oracle.json
+src/tuning_results_rand/lstm_model_tuning_rand/tuner0.json
+src/tuning_results_rand/lstm_model_tuning_rand/trial_000/build_config.json
+src/tuning_results_rand/lstm_model_tuning_rand/trial_000/checkpoint.weights.h5
+src/tuning_results_rand/lstm_model_tuning_rand/trial_000/trial.json
+src/tuning_results_rand/lstm_model_tuning_rand/trial_001/checkpoint.weights.h5
+src/tuning_results_rand/lstm_model_tuning_rand/trial_001/trial.json

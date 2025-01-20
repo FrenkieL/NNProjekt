@@ -51,8 +51,8 @@ Naselje, LSTM, rekurzivne mreže, neuronske mreže, generiranje
 \section{Uvod}
 \label{sect:intro}
 Ishod projekta je LSTM rekurzivna neuronska mreža na razini znakova koja generira realistična imena naselja na različitim jezicima.\\
-Mreža radi sa vektorima koji predstavljaju slova neke abecede (ovisno o odabiru jezika) proširene specijalnim znakom npr. $\Sigma = \{ \text{hrv. abeceda}\} \cup \{\langle END \rangle\}$.\\
-Ulaz mreže je one-hot vektor $\mathbf{x}^{(t)}$ dimezije $\lvert \Sigma \rvert = 30 + 1$.
+Mreža radi sa vektorima koji predstavljaju slova neke abecede (ovisno o odabiru jezika) proširene specijalnim znakom npr. $\Sigma = \{ \text{hrv. abeceda}\} \cup \{ \text{spec. znakovi}\} \cup \{\langle END \rangle\}$.\\
+Ulaz mreže je one-hot vektor $\mathbf{\hat{x}}^{(t)}$ dimezije $\lvert \Sigma \rvert = 30 + 0 + 1$.
 \begin{equation}
 \mathbf{x}^{(t)}_i=
     \begin{cases}
@@ -82,7 +82,7 @@ Izlaz mreže je niz znakova $\{\mathbf{y}^{(t)}\} \biggr \rvert_{t=0}^{T-1}$, od
 Željena točnost modela $\eta$ je \[\argmax_{\tau} \eta = 0.4\]
 
 \section{Pregled literature}
-U ovom poglavlju dajemo kratki pregled postojeće literature na način kako je to učinjeno u \cite{Fatima}. Svrstavanjem radova na temelju kriterija: pristupa dubokom učenju, funkciji pogreške/metrici kvalitete, jeziku i skupu podataka.\\
+U ovom poglavlju dajemo kratki pregled postojeće literature na način kako je to učinjeno u \cite{Fatima}. Svrstavanjem radova na temelju kriterija: pristupa dubokom učenju, funkciji pogreške/metrici kvalitete i skupu podataka.\\
 Dobivamo taksonomiju na slici \ref{pic:takso}.\\
 Razlog za odabir pojedine karakteristike dajemo u dotičnom poglavlju.
 
@@ -104,7 +104,8 @@ Nakon pretraživanja ukupno smo pronašli 9 relevantnih radova sa tražilica:
 \item IEEE Xplore (2 rada)
 \item pretraživanje literature (2 rada)
 \end{enumerate}
-\begin{table}[htbp]
+
+\begin{table}[H]
 \caption{detalji pretraživanja}
 \begin{center}
 \begin{tabular}{|p{50pt}|p{110pt}|p{70pt}|}
@@ -113,10 +114,11 @@ Nakon pretraživanja ukupno smo pronašli 9 relevantnih radova sa tražilica:
 tražilice & Google, Google Scholar, BASE, CORE, Science.gov, Semantic Scholar, Baidu scholar, RefSeek, CiteSeerX, ScienceOpen, The Lens, arXiv, AMiner, ACM, IEEE Xplore, Science Direct,  Springer Link, Web of Science & Samo smo na tražilici Google našli relevatne radove (njih 5)  \\ \hline
 traženi pojam & (LSTM OR GRU OR CNN OR RNN OR Neural Network) AND ((~city AND ~generator AND ~name) OR (~generator AND ~name)) & Napisan sintaksom i operatorima koje koristi Google, ali na ostalim tražilicama je korišten prilagođeni izraz.\\ \hline
 \end{tabular}
-\label{tab:trening}
+\label{tab:search}
 \end{center}
 \end{table}
 
+Iako je problem kao takav složen (vidi poglavlje \ref{sect:zakljucak}), njegova izvedba je relativno jednostavna i teško primjenjiva na probleme u stvarnom svijetu te je zbog toga dostupno jako malo literature, koja je isključivo ograničena na hobi-projekte (\cite{master_LSTM}, \cite{name_generator}, \cite{data_name_generator}, \cite{city_name_gen}) i projekte u sklopu fakultetskih kolegija (\cite{randolph}, \cite{unreasonable_eff_of_LSTM}).\\
 
 
 
@@ -124,7 +126,7 @@ traženi pojam & (LSTM OR GRU OR CNN OR RNN OR Neural Network) AND ((~city AND ~
 \section{Opis implementirane LSTM mreže}
 Fokus projekta je treniranje i razvijanje neuronske mreže za generiranje realističnih imena naselja na različitim jezicima. Ukupno je dostupno generiranje imena na 5 jezika: engleski, francuski, hrvatski, španjolski, njemački. Moguće je generiranje toponima iz 7 različitih država (dodatno, SAD i Kanada). Korištenjem LSTM mreže, koja je prilagođena za analizu sekvencijskih podataka, cilj je razviti model sposoban za učenje jezičnih obrazaca i struktura iz postojećih imena naselja. Svrha mreže je generiranje novih imena temeljenih na tim naučenim obrascima, pri čemu se zadržavaju jezične i strukturne zakonitosti specifične za taj kontekst.\\
 \\
-Nadalje uz ćeliju je dodatno razvijeno GUI sučelje koje ima mogućnost generiranja 25 različitih imena gradova na 6 dostupnih jezike.\\
+Nadalje uz ćeliju je dodatno razvijeno GUI sučelje koje ima mogućnost generiranja 25 različitih imena gradova na 6 dostupnih jezika.\\
 Težine jednom naučene mreže se pohranjuju u trajnu memoriju, odnosno u datoteke u za to predviđenom direktoriju: $\mathtt{./saved\_models}$.
 
 \subsection{Arhitektura} \label{subsect:arh}
@@ -176,37 +178,85 @@ Obično se više jedinica u sloju povezuje kao na slici \ref{tikz:vise_celija}, 
 
 Kao što vidimo na slici \ref{subfig:lstm_cell_units}, parametar \texttt{units=} keras klase \texttt{LSTM} upravlja dimenzijama svih vektora osim ulaznog. Keras LSTM sloj se ne sastoji od više povezanih LSTM ćelija, već od jedne LSTM ćelije kojoj je povećana dimenzionalnost izlaznog prostora te vektora koji upravljaju stanjem ćelije.
 \ \\
-\begin{figure}[H] \label{pic:cell}
-\begin{tikzpicture}
-	\draw[draw=black, thin, solid] (-2.99,5.49) rectangle (1.01,4.00);
-	\node[black, anchor=south west] at (-1.72,4.49) {LSTM};
-	\draw[draw=black, -latex, thin, solid] (-1.00,3.00) -- (-1.00,4.00);
-	\draw[draw=black, -latex, thin, solid] (-0.99,5.51) -- (-0.99,6.45);
-	\draw[draw=black, thin, solid] (1.00,4.50) -- (1.50,4.50);
-	\draw[draw=black, thin, solid] (1.50,4.50) -- (1.50,6.00);
-	\draw[draw=black, thin, solid] (1.50,6.00) -- (-3.50,6.00);
-	\draw[draw=black, thin, solid] (-3.50,6.00) -- (-3.50,4.50);
-	\draw[draw=black, -latex, thin, solid] (-3.50,4.50) -- (-3.00,4.50);
-	\draw[draw=black, thin, solid] (-2.99,6.99) rectangle (1.01,6.47);
-	\node[black, anchor=south west] at (-1.87,6.47) {softmax};
-	\node[black, anchor=south west] at (-0.99,6.96) {$\mathbf{y}^{(t)}$};
-	\node[black, anchor=south west] at (-1.06,3.25) {$\mathbf{x}^{(t)}$};
-	\node[black, anchor=south west] at (-1.09,5.92) {$f(\mathbf{x}^{(t)})$};
-	\draw[draw=black, -latex, thin, solid] (-0.99,6.96) -- (-1.00,7.50);
-	\draw[draw=black, thin, solid] (-3.00,7.50) rectangle (1.06,8.01);
-	\node[black, anchor=south west] at (-2.10,7.54) {uzorkovanje};
-	\node[black, anchor=south west] at (-0.99,8.07) {$\hat{\mathbf{y}}^{(t)}$};
-	\draw[draw=black, -latex, thin, solid] (-0.99,8.02) -- (-0.99,8.63);
-	\node[black, anchor=south west] at (1.56,5.05) {$\mathbf{a}^{(t)}$, $\mathbf{c}^{(t)}$};
-\end{tikzpicture}
-\caption{Arhitektura LSTM ćelije}
+U cjelini \ref{sect:intro} je opisan konceptualni izgled mreže: njena najjednostavnija varijanta (slika \ref{subfig:concept_cell}). Iz praktičnih razloga, implementacija izgleda nešto drugačije (slika \ref{subfig:real_cell}).
+
+\begin{figure}[H]
+\centering
+\subfigure[Konceptualna arhitektura LSTM ćelije]{
+		\label{subfig:concept_cell}
+		\begin{tikzpicture}
+			\draw[draw=black, thin, solid] (-2.99,5.49) rectangle (1.01,4.00);
+			\node[black, anchor=south west] at (-1.72,4.49) {LSTM};
+			\draw[draw=black, -latex, thin, solid] (-1.00,3.00) -- (-1.00,4.00);
+			\draw[draw=black, -latex, thin, solid] (-0.99,5.51) -- (-0.99,6.45);
+			\draw[draw=black, thin, solid] (1.00,4.50) -- (1.50,4.50);
+			\draw[draw=black, thin, solid] (1.50,4.50) -- (1.50,6.00);
+			\draw[draw=black, thin, solid] (1.50,6.00) -- (-3.50,6.00);
+			\draw[draw=black, thin, solid] (-3.50,6.00) -- (-3.50,4.50);
+			\draw[draw=black, -latex, thin, solid] (-3.50,4.50) -- (-3.00,4.50);
+			\draw[draw=black, thin, solid] (-2.99,6.99) rectangle (1.01,6.47);
+			\draw[draw=black, -latex, thin, dashed] (1.5,6.65) -- (1.0,6.65);
+			\node[black, anchor=south west] at (-1.87,6.47) {softmax};
+			\node[black, anchor=south west] at (-0.99,6.96) {$\hat{\mathbf{y}}^{(t)}$};
+			\node[black, anchor=south west] at (-1.06,3.25) {$\mathbf{x}^{(t)}$};
+			\node[black, anchor=south west] at (-1.09,5.92) {$f(\mathbf{x}^{(t)})$};
+			\draw[draw=black, -latex, thin, solid] (-0.99,6.96) -- (-1.00,7.50);
+			\draw[draw=black, thin, solid] (-3.00,7.50) rectangle (1.06,8.01);
+			\node[black, anchor=south west] at (-2.10,7.54) {uzorkovanje};
+			\node[black, anchor=south west] at (-0.99,8.07) {$\mathbf{y}^{(t)}$};
+			\draw[draw=black, -latex, thin, solid] (-0.99,8.02) -- (-0.99,8.63);
+			\node[black, anchor=south west] at (1.56,5.05) {$\mathbf{a}^{(t)}$, $\mathbf{c}^{(t)}$};
+			\node[black, anchor=south west] at (1.5,6.42) {$\tau$};
+		\end{tikzpicture}
+}
+\subfigure[stvarna arhitektura LSTM mreže]{
+	\label{subfig:real_cell}
+	\begin{tikzpicture}
+		\draw[draw=black, thin, solid] (-2.00,2.00) rectangle (2.00,0.00);
+		\draw[draw=black, thin, solid] (-2.00,-1.00) rectangle (2.00,-1.50);
+		\draw[draw=black, thin, solid] (-2.00,3.00) rectangle (2.00,3.50);
+		\draw[draw=black, thin, solid] (-2.00,4.50) rectangle (2.00,5.00);
+		\draw[draw=black, -latex, thin, solid] (0.00,-1.00) -- (0.00,0.00);
+		\draw[draw=black, -latex, thin, solid] (0.00,2.00) -- (0.00,3.00);
+		\draw[draw=black, -latex, thin, solid] (0.00,3.50) -- (0.00,4.50);
+		\draw[draw=black, thin, solid] (-2.00,6.00) rectangle (2.00,6.50);
+		\draw[draw=black, -latex, thin, solid] (0.00,5.00) -- (0.00,6.00);
+		\draw[draw=black, -latex, thin, solid] (-2.50,1.00) -- (-2.00,1.00);
+		\draw[draw=black, thin, solid] (2.00,1.00) -- (2.50,1.00);
+		\draw[draw=black, thin, solid] (2.50,1.00) -- (2.50,2.00);
+		\draw[draw=black, thin, solid] (-2.50,1.00) -- (-2.50,2.00);
+		\draw[draw=black, thin, solid] (2.50,2.01) -- (2.50,2.25);
+		\draw[draw=black, thin, solid] (-2.49,1.99) -- (-2.49,2.26);
+		\draw[draw=black, thin, solid] (-2.49,2.26) -- (2.51,2.26);
+		\node[black, anchor=south west] at (-0.70,0.72) {LSTM};
+		\node[black, anchor=south west] at (-1.11,-1.53) {embedding};
+		\node[black, anchor=south west] at (-0.77,3.00) {lambda};
+		\node[black, anchor=south west] at (-1.40,4.49) {dense softmax};
+		\node[black, anchor=south west] at (-1.22,6.03) {uzorkovanje};
+		\draw[draw=black, -latex, thin, solid] (0.00,6.50) -- (0.00,7.00);
+		\draw[draw=black, -latex, thin, dashed] (2.49,3.26) -- (1.99,3.26);
+		\node[black, anchor=south west] at (2.44,3.05) {$\tau$};
+		\draw[draw=black, -latex, thin, solid] (0.00,-2.50) -- (0.01,-1.49);
+		\node[black, anchor=south west] at (-0.06,-2.25) {$\hat{\mathbf{x}}^{(t)}$};
+		\node[black, anchor=south west] at (-0.06,-0.75) {$\mathbf{x}^{(t)}$};
+		\node[black, anchor=south west] at (2.44,1.25) {$\mathbf{a}^{(t)}, \mathbf{c}^{(t)}$};
+		\node[black, anchor=south west] at (-0.05,2.36) {$f(\mathbf{x}^{(t)})$};
+		\node[black, anchor=south west] at (0.04,3.74) {$\frac{f(\mathbf{x}^{(t)})}{\tau}$};
+		\node[black, anchor=south west] at (0.08,5.23) {$\hat{\mathbf{y}}^{(t)}$};
+		\node[black, anchor=south west] at (0.13,6.58) {$\mathbf{y}^{(t)}$};
+	\end{tikzpicture}
+}
+\caption{ }
 \end{figure}
 
 
 \subsection{Hipeparametri} \label{subsect:hiper}
 
+\subsubsection{Dimenzija ulaznog vektora}
+Dimenzija izlaznog vektora embedding sloja. Očekujemo $ \lvert \hat{\mathbf{x}} \rvert =  \lvert \Sigma \rvert$
+
 \subsubsection{Dimenzija skrivenog stanja}
-U trenutku $t$ sadrži informacije iz koraka ${t-1, ..., 0}$, stoga očekujemo monotono padajuću funkciju gubitka u ovisnosti o $\lvert \mathbf{a} \rvert$.
+U trenutku $t$ sadrži informacije iz koraka $\{t-1, ..., 0\}$, stoga očekujemo monotono padajuću funkciju gubitka u ovisnosti o $\lvert \mathbf{a} \rvert$.
 
 \subsubsection{Stopa učenja}
 Koristimo ADAM optimizator, koji se temelji na stohastičkom gradijentnom spustu, stoga stopa uravlja numeričkom stabilnosti optimizacije. Očekujemo konveksnu funckiju: prevelike stope učenja dovode do nestabilnosti, a premale se presporo miču prema optimumu. (vidi \ref{subsect:trening})
@@ -218,7 +268,6 @@ Koristimo ADAM optimizator, koji se temelji na stohastičkom gradijentnom spustu
 \end{equation}
 \caption{Temperaturni softmax}
 \end{figure}
-
 
 temperaturom parametrizirani softmax čuva poredak vjerojatnosti klasa, ali smanjuje razliku između njih:
 \begin{equation}
@@ -241,9 +290,11 @@ temperaturom parametrizirani softmax čuva poredak vjerojatnosti klasa, ali sman
 \textbf{Hiperparametar} & \textbf{\textit{Vrijednost}} & \textbf{\textit{komentar}}\\ \hline
 %broj jedinica po sloju &  & Broj jedinica po sloju određuje, između ostalog, i dimenziju skrivenog stanja ($\lvert \mathbf{a} \rvert$). (vidi \ref{subsect:arh})\\ \hline
 temperatura ($\tau$) &  & Daje mogućnost upravljanja "kreativnošću" generiranje. \\ \hline
+dimenzija izlaznog prostora embedding sloja ($\lvert \mathbf{x} \rvert$) &  & \\ \hline
+dimenzija skrivenog stanja ($\lvert \mathbf{a} \rvert$) &  & \\   \hline
 stopa učenja ($\mu$) &  & \\ \hline \hline
-aktivacijska funckija & tanh & zadano \\ \hline
-povratna akt. funkcija & $\sigma_{\tau}$ & zadano \\ \hline
+aktivacijska funckija & $\tanh$ & zadano \\ \hline
+povratna akt. funkcija & $\sigma$ & zadano \\ \hline
 bias & da & zadano \\ \hline
 inicijalizator kernela & glorot jednoliki & zadano \\ \hline
 inicijalizator povratne veze & glorot jednoliki & zadano \\ \hline
@@ -314,7 +365,10 @@ metrika kvalitete & točnost \\ \hline
 \end{table}
 
 Pri treniranju koristimo podjelu skupova na skup za treniranje i testiranje (validaciju) u omjeru 4:1.\\
-Uz hiperparametre $\begin{bmatrix} \lvert \mathbf{a} \rvert & \mu & \lvert \mathbf{\hat{x}} \rvert & \tau \end{bmatrix} = \begin{bmatrix} 128 & 10^{-3} & 100 & 0.01  \end{bmatrix}$ dobivamo slijedeće vrijednosti funkcije gubitka i točnosti po epohama.
+Uz hiperparametre $\begin{bmatrix} \lvert \mathbf{a} \rvert & \mu & \lvert \mathbf{\hat{x}} \rvert & \tau \end{bmatrix} = \begin{bmatrix} 128 & 10^{-3} & 100 & 0.004885  \end{bmatrix}$ dobivamo slijedeće vrijednosti funkcije gubitka i točnosti po epohama.\\
+\\
+Zbog ograničenja sa skupovima podataka te kako bi se omogućila usporedba veličina skupa za testiranje svih jezika je ograničena na $\lvert \mathcal{D}_{test, L} \rvert = \min_{L} \lvert \mathcal{D}_{test, L} \rvert = \lvert \mathcal{D}_{test, GER} \rvert \approx 600$.
+
 
 \begin{figure}[H]
 \centering
@@ -331,12 +385,15 @@ Grafovi za ostale jezike izgledaju gotovo identično, greška na skupu za testir
 \section{Opis eksperimentalnih rezultata} 
 \subsection{optimiranje hiperparametara}
 Optimiranje je izvršeno strojno, pomoću razreda \texttt{GridSearch}.
-Pokrenut je automatski postupak optimizacije nad 4 hiperparametra naše mreže, te su dobivene vrijednosti $\mathbf{\boldsymbol{\theta}_m} = \begin{bmatrix} \lvert \mathbf{x} \rvert_m & \lvert \mathbf{a} \rvert_m & \mu_m & \tau_m \end{bmatrix} = \begin{bmatrix} 32 & 224 & 0.00406 & 0.01 \end{bmatrix}$.
-Te vrijednosti optimuma $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test}] = 2.227$.
+Pokrenut je automatski postupak optimizacije nad 4 hiperparametra naše mreže, te su dobivene vrijednosti $\mathbf{\boldsymbol{\theta}_m} = \begin{bmatrix} \lvert \mathbf{x} \rvert_m & \lvert \mathbf{a} \rvert_m & \mu_m & \tau_m \end{bmatrix} = \begin{bmatrix} 32 & 224 & 0.00406 & 0.00802 \end{bmatrix}$.
+Vrijednosti optimuma $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test}] = 2.229$.\\
+\\
+Vidimo da su naša predviđanja iz cjeline \ref{subsect:hiper} bila većinom točna, sa iznimkom onog za skriveno stanje $\lvert \mathbf{a} \rvert$: nije riječ o monotono padajućoj funkciji pogreške u ovisnosti o tom hiperparametru, već o konveksnoj. Razlog tomu je moguće to što je riječ o kratkim nizovima znakova za koje postoji ograničena količina informacija koja se ima za zapamtiti između vremenskih koraka.
 
 \subsection{Usporedba rezultata}
 U tablici dajemo kratku usporedbu sa rezultatima u literaturi.
-\begin{table}[htbp]
+Kao i u prethodnom cjelinama, korišten je skup podataka Američkih gradova (skup koji ima najmanju točnost na skupu za validaciju).
+\begin{table}[H]
 \caption{ }
 \begin{center}
 \begin{tabular}{|c|c|c|c|}
@@ -355,11 +412,20 @@ Vrijedi napomenuti da, zbog svojstvenosti problema, točnost na ispitnom skupu p
 \item U skupu za ispitivanje postoje gradovi koji nisu u skupu za testiranje, a postoje u stvarnosti.
 \item U skupu za ipistivanje postoje realistični, ali nepostojeći gradovi (cilj zadatka)
 \end{enumerate}
-Budući da $\lvert \mathcal{D} \rvert \approx 600$, prva točka je vrlo izgledna. Stoga $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test}]$ podcjenuje mogućnost generalizacije našeg modela.\\
-Dapače u skupu američkih gradova $10\%$ skupa $\mathcal{D}_{test}$ je takvo.
+Budući da $\lvert \mathcal{D} \rvert \approx 600$, prva točka je vrlo izgledna. Stoga $E[L(\mathbf{\boldsymbol{\theta}}_m) | \mathcal{D}_{test}]$ podcjenuje mogućnost generalizacije našeg modela.
 
-\section{Zaključak}
---
+\section{Zaključak} \label{sect:zakljucak}
+Krajnji rezultat je mreža koja ima željenu točnost $\eta \approx 0.4$, svi projekti navedeni u literaturi dobivaju istu vrijednosti točnosti. Mišljenje je autora da je uzrok tako niskoj točnosti u samom problemu. Naime, iako su u toponimima uočljivi obrasci, također je prisutna velika raznolikost među imenima. Predviđanje realističnih imena je, stoga, izazovan zadatak.\\
+Nije moguće proširiti skup podataka ta učenje, jer su svi postojeći gradovi već navedeni u skupu za učenje. Također je malo vjerojatno da će se na točnosti dobiti tako da se promijeni arhitektura mreže i/ili ćelije, jer je LSTM više nego dovoljno složena arhitektura za generiranje kratkih nizova znakova.\\
+Kao moguće rješenje autori predlažu proširenje izvornog skupa podataka za učenje gradovima koji ne postoje. To se može ostvariti na bilo kojim, ili kombinacijom ova dva pristupa:
+\begin{enumerate}
+\item ručno: ljudi izmišljaju imena gradova te osiguravaju da već ne postoje.
+\item strojno: LSTM mreža generira imena gradova, te pohranjuje u idući skup za učenje one nazive koji već ne postoje.
+\end{enumerate}
+
+Ako pitamo ChatGpt 4 da generira 25 imena američkih gradova on to radi sa $80\%$ točnosti međutim većina tih gradova je u skupu za učenje (CommonCrawl ili OpenWebText najvjerojatnije), a oni koji nisu su vrlo slični njima. Autori vjeruju da je upravo to razlog visokoj točnosti GPT te da bi takav pristup, implementiran na prethodno opisan način, znatno poboljšao točnost naše mreže.
+
+
 
 
 \begin{thebibliography}{00}

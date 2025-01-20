@@ -2,6 +2,7 @@ import os
 import pickle
 import random
 import numpy as np
+from numpy import random
 import tensorflow as tf
 from abc import ABC, abstractmethod
 from tensorflow.keras.models import Sequential
@@ -14,6 +15,10 @@ from tensorflow.keras.callbacks import EarlyStopping
 from kerastuner.tuners import RandomSearch, GridSearch
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+
+
+num_of_epochs = 50
+
 
 
 def split_data(X, y, test_size=0.2):
@@ -81,16 +86,17 @@ class NamesDatasetToken:
 def build_lstm_model(dataset, X_train, hyperparameters, embedding_units, lstm_units, lr, temperature):
     model = Sequential()
 
-    iterations = 5
-    minval, maxval = 32, 512
+    iterations = 32
+    minval, maxval = 32, 256 + 128
     step = (maxval - minval)/iterations
     model.add(Embedding(input_dim=len(dataset.tokenizer.word_index) + 1,
-                         output_dim=embedding_units if embedding_units is not None else hyperparameters.Int('embedding_units', min_value=minval, max_value=maxval, step=step), 
+                         output_dim=embedding_units if embedding_units is not None else hyperparameters.Int('embedding_units', min_value=minval, max_value=maxval, step=step, sampling='log'), 
                         input_length=X_train.shape[1]))
 
     model.add(LSTM(units= lstm_units if lstm_units is not None else hyperparameters.Int('lstm_units', min_value=minval, max_value=maxval, step=step)))
 
 
+    iterations = 40
     minval, maxval = 0.2, 2
     step = (maxval - minval)/iterations
     model.add(Lambda(lambda y: y / (temperature if temperature is not None else hyperparameters.Float('temperature', min_value=minval, max_value=maxval, step=step, sampling='linear'))))
@@ -105,8 +111,8 @@ def build_lstm_model(dataset, X_train, hyperparameters, embedding_units, lstm_un
                   loss='categorical_crossentropy')
     
     return model
-    
-def tune_hyperparameters(datasets, lang, embedding_units=100, lstm_units=128, lr=0.001, temperature=0.01):
+
+def tune_hyperparameters(datasets, lang, embedding_units=100, lstm_units=128, lr=0.001, temperature=0.00802, random_search=False):
     for dataset in datasets:
         lang_code = dataset.linfo.langname
         model_path = f'../saved_models/{lang_code}_model.h5'
@@ -122,24 +128,34 @@ def tune_hyperparameters(datasets, lang, embedding_units=100, lstm_units=128, lr
         # Učitavanje podataka
         X_train, X_test, y_train, y_test = dataset.load_names()
 
-        tuner = GridSearch(
-            lambda h: build_lstm_model(dataset, X_train, h, embedding_units, lstm_units, lr, temperature=temperature),
-            objective='val_loss',
-            max_trials=300,
-            executions_per_trial=1,
-            directory='tuning_results',
-            project_name='lstm_model_tuning'
-        )
+        if(random_search):
+            tuner = RandomSearch(
+                lambda h: build_lstm_model(dataset, X_train, h, embedding_units, lstm_units, lr, temperature),
+                objective='val_loss',
+                max_trials=60,
+                executions_per_trial=1,
+                directory='tuning_results_rand',
+                project_name='lstm_model_tuning_rand'
+            )
+        else:
+            tuner = GridSearch(
+                lambda h: build_lstm_model(dataset, X_train, h, embedding_units, lstm_units, lr, temperature=temperature),
+                objective='val_loss',
+                max_trials=60,
+                executions_per_trial=1,
+                directory='tuning_results',
+                project_name='lstm_model_tuning'
+            )
 
         early_stopping_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
-        tuner.search(X_train, y_train, epochs=50, validation_data=(X_test, y_test), callbacks=[early_stopping_callback])
+        tuner.search(X_train, y_train, epochs=num_of_epochs, validation_data=(X_test, y_test), callbacks=[early_stopping_callback])
         best_hyperparameters = tuner.get_best_hyperparameters(num_trials=1)[0]
 
         return best_hyperparameters
     
     return None
 
-def train_and_save_models(datasets, langs, embedding_units=100, lstm_units=128, lr=0.001, temperature=0.01):
+def train_and_save_models(datasets, langs, embedding_units=100, lstm_units=128, lr=0.001, temperature=0.00802):
     for dataset in datasets:
         lang_code = dataset.linfo.langname
         model_path = f'../saved_models/{lang_code}_model.h5'
@@ -169,7 +185,7 @@ def train_and_save_models(datasets, langs, embedding_units=100, lstm_units=128, 
         early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
         # treniranje
-        history = model.fit(X_train, y_train, epochs=45, validation_data=(X_test, y_test),
+        history = model.fit(X_train, y_train, epochs=50, validation_data=(X_test, y_test),
                             callbacks=[early_stopping], verbose=1)
 
         loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
@@ -246,7 +262,7 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
         
         # Predikcija sljedećeg znaka
         predicted_probabilities = model.predict(sequence, verbose=0)[0]
-        predicted_id = np.argmax(predicted_probabilities)
+        predicted_id = np.random.choice(predicted_probabilities)
         
         # Pronalaženje znaka iz predikcije
         predicted_char = tokenizer.index_word.get(predicted_id, '')
@@ -276,8 +292,8 @@ def generate_name(model, tokenizer, max_seq_length, stop_char='<'):
     return generated_text
 
 
-# tune_hyperparameters(datasets=datasets, lang="US", embedding_units=100, lstm_units=128, temperature=None, lr=0.001)
-tune_hyperparameters(datasets=datasets, lang="US", embedding_units=100, lstm_units=128, lr=0.001, temperature=None)
+#tune_hyperparameters(datasets=datasets, lang="US", embedding_units=32, lstm_units=224, lr=0.00406, temperature=0.00802, random_search=False)
+tune_hyperparameters(datasets=datasets, lang="US", embedding_units=None, lstm_units=None, lr=None, temperature=None, random_search=True)
 
 
 #generate name with some model
